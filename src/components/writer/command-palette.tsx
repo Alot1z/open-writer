@@ -35,6 +35,9 @@ import {
   Map,
   Calendar,
   MessageSquare,
+  Zap,
+  Target,
+  Upload,
 } from "lucide-react"
 
 interface Command {
@@ -161,16 +164,22 @@ export function CommandPalette() {
       action: () => store.setSearchOpen(true),
     },
     {
+      id: "action-import",
+      label: "Import",
+      icon: Upload,
+      action: () => store.setSettingsOpen(true, "import"),
+    },
+    {
       id: "action-export",
       label: "Export",
       icon: Download,
-      action: () => {},
+      action: () => store.setSettingsOpen(true, "export"),
     },
     {
       id: "action-backup",
       label: "Backup",
       icon: Database,
-      action: () => {},
+      action: () => store.setSettingsOpen(true, "backup"),
     },
     {
       id: "action-agent",
@@ -183,7 +192,7 @@ export function CommandPalette() {
       label: "Settings",
       icon: Settings,
       shortcut: "Ctrl+,",
-      action: () => store.setLeftPanel("settings"),
+      action: () => store.setSettingsOpen(true),
     },
   ]
 
@@ -200,6 +209,24 @@ export function CommandPalette() {
       label: "Toggle Typewriter Mode",
       icon: Type,
       action: () => store.setTypewriterMode(!store.isTypewriterMode),
+    },
+    {
+      id: "sprint-start",
+      label: "Start Sprint",
+      icon: Zap,
+      action: () => {
+        store.setLeftPanel("analytics")
+        store.setSprintPanelOpen(true)
+      },
+    },
+    {
+      id: "goal-create",
+      label: "Create Goal",
+      icon: Target,
+      action: () => {
+        store.setLeftPanel("analytics")
+        store.setGoalsPanelOpen(true)
+      },
     },
   ]
 

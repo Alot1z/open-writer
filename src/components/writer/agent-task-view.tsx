@@ -1,9 +1,11 @@
 "use client"
 
+import { useEffect, useState, useCallback } from 'react'
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Loader2,
   Check,
@@ -34,7 +36,7 @@ export interface AgentTask {
 }
 
 interface AgentTaskViewProps {
-  task: AgentTask
+  taskId: string
 }
 
 const STATUS_CONFIG: Record<
@@ -48,7 +50,54 @@ const STATUS_CONFIG: Record<
   failed: { icon: X, label: "Failed", variant: "destructive", color: "text-destructive" },
 }
 
-export function AgentTaskView({ task }: AgentTaskViewProps) {
+export function AgentTaskView({ taskId }: AgentTaskViewProps) {
+  const [task, setTask] = useState<AgentTask | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  const fetchTask = useCallback(async () => {
+    if (!taskId) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/agent-tasks/${taskId}`)
+      if (res.ok) {
+        const data = await res.json()
+        setTask(data)
+      }
+    } catch {
+      // silent
+    } finally {
+      setLoading(false)
+    }
+  }, [taskId])
+
+  useEffect(() => {
+    fetchTask()
+  }, [fetchTask])
+
+  if (loading) {
+    return (
+      <div className="p-4 space-y-4">
+        <Skeleton className="h-6 w-40" />
+        <Skeleton className="h-4 w-24" />
+        <Separator />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="space-y-2">
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-8 w-full" />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (!task) {
+    return (
+      <div className="p-6 text-center text-sm text-muted-foreground">
+        Task not found
+      </div>
+    )
+  }
+
   const statusConfig = STATUS_CONFIG[task.status]
   const StatusIcon = statusConfig.icon
 

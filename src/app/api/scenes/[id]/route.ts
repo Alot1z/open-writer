@@ -62,6 +62,40 @@ export async function PUT(
       },
     })
 
+    // Auto-version: create ManuscriptVersion if content changed, throttled to 1 per 5 min
+    if (body.content !== undefined) {
+      try {
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
+        const lastAutosave = await db.manuscriptVersion.findFirst({
+          where: {
+            sceneId: id,
+            isAutosave: true,
+            createdAt: { gte: fiveMinutesAgo },
+          },
+          orderBy: { createdAt: 'desc' },
+        })
+
+        if (!lastAutosave) {
+          await db.manuscriptVersion.create({
+            data: {
+              projectId: scene.chapterId
+                ? (await db.chapter.findUnique({ where: { id: scene.chapterId } }))?.projectId ?? ''
+                : '',
+              sceneId: id,
+              content: body.content,
+              wordCount: wordCount ?? countWords(body.content),
+              label: 'Autosave',
+              isMilestone: false,
+              isAutosave: true,
+            },
+          })
+        }
+      } catch (versionError) {
+        // Don't fail the scene update if version creation fails
+        console.error('Failed to create auto-version:', versionError)
+      }
+    }
+
     return NextResponse.json(scene)
   } catch (error: unknown) {
     if (

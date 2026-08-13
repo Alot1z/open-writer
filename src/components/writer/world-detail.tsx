@@ -55,8 +55,13 @@ const CATEGORIES = [
   { value: 'concept', label: 'Concept' },
 ]
 
-export function WorldDetail() {
+interface WorldDetailProps {
+  worldId?: string
+}
+
+export function WorldDetail({ worldId: worldIdProp }: WorldDetailProps = {}) {
   const { selectedWorldId, setRightPanel, setSelectedWorld } = useWriterStore()
+  const effectiveId = worldIdProp ?? selectedWorldId
   const { toast } = useToast()
   const [element, setElement] = useState<WorldElement | null>(null)
   const [loading, setLoading] = useState(true)
@@ -64,10 +69,10 @@ export function WorldDetail() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchElement = useCallback(async () => {
-    if (!selectedWorldId) return
+    if (!effectiveId) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/world/${selectedWorldId}`)
+      const res = await fetch(`/api/world/${effectiveId}`)
       if (res.ok) {
         const data = await res.json()
         setElement(data)
@@ -77,7 +82,7 @@ export function WorldDetail() {
     } finally {
       setLoading(false)
     }
-  }, [selectedWorldId])
+  }, [effectiveId])
 
   useEffect(() => {
     fetchElement()

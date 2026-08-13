@@ -62,8 +62,13 @@ interface Character {
 
 const ROLE_OPTIONS = ['protagonist', 'antagonist', 'supporting', 'minor']
 
-export function CharacterDetail() {
+interface CharacterDetailProps {
+  characterId?: string
+}
+
+export function CharacterDetail({ characterId: characterIdProp }: CharacterDetailProps = {}) {
   const { selectedCharacterId, setRightPanel, setSelectedCharacter, currentProjectId } = useWriterStore()
+  const effectiveId = characterIdProp ?? selectedCharacterId
   const { toast } = useToast()
   const [character, setCharacter] = useState<Character | null>(null)
   const [loading, setLoading] = useState(true)
@@ -71,10 +76,10 @@ export function CharacterDetail() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchCharacter = useCallback(async () => {
-    if (!selectedCharacterId) return
+    if (!effectiveId) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/characters/${selectedCharacterId}`)
+      const res = await fetch(`/api/characters/${effectiveId}`)
       if (res.ok) {
         const data = await res.json()
         setCharacter(data)
@@ -84,7 +89,7 @@ export function CharacterDetail() {
     } finally {
       setLoading(false)
     }
-  }, [selectedCharacterId])
+  }, [effectiveId])
 
   useEffect(() => {
     fetchCharacter()

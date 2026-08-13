@@ -41,6 +41,7 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
     setFocusMode,
     setTypewriterMode,
     setSearchOpen,
+    setSettingsOpen,
   } = useWriterStore()
 
   const { theme, setTheme } = useTheme()
@@ -198,7 +199,7 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
       {/* Settings */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-7 w-7">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSettingsOpen(true)}>
             <Settings className="h-3.5 w-3.5" />
           </Button>
         </TooltipTrigger>

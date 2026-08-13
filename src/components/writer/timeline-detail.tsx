@@ -52,8 +52,13 @@ const EVENT_TYPE_OPTIONS = [
   'journey', 'political', 'romantic', 'mystery', 'custom',
 ]
 
-export function TimelineDetail() {
+interface TimelineDetailProps {
+  eventId?: string
+}
+
+export function TimelineDetail({ eventId: eventIdProp }: TimelineDetailProps = {}) {
   const { selectedTimelineEventId, setRightPanel, setSelectedTimelineEvent } = useWriterStore()
+  const effectiveId = eventIdProp ?? selectedTimelineEventId
   const { toast } = useToast()
   const [event, setEvent] = useState<TimelineEvent | null>(null)
   const [loading, setLoading] = useState(true)
@@ -61,10 +66,10 @@ export function TimelineDetail() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchEvent = useCallback(async () => {
-    if (!selectedTimelineEventId) return
+    if (!effectiveId) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/timeline/${selectedTimelineEventId}`)
+      const res = await fetch(`/api/timeline/${effectiveId}`)
       if (res.ok) {
         const data = await res.json()
         setEvent(data)
@@ -74,7 +79,7 @@ export function TimelineDetail() {
     } finally {
       setLoading(false)
     }
-  }, [selectedTimelineEventId])
+  }, [effectiveId])
 
   useEffect(() => {
     fetchEvent()

@@ -32,7 +32,13 @@ import {
   Bot,
   Shield,
   Keyboard,
+  Download,
+  Upload,
+  Database,
 } from "lucide-react"
+import { ExportPanel } from "./export-panel"
+import { ImportPanel } from "./import-panel"
+import { BackupPanel } from "./backup-panel"
 
 interface EditorSettings {
   fontFamily: "serif" | "sans" | "mono"
@@ -126,9 +132,16 @@ function saveSettings(key: string, values: Record<string, unknown>) {
 }
 
 export function SettingsDialog() {
-  const { isCommandPaletteOpen } = useWriterStore()
-  const [open, setOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState("editor")
+  const { isSettingsOpen, settingsTab, setSettingsOpen } = useWriterStore()
+  const [activeTab, setActiveTab] = useState(settingsTab)
+
+  // Sync tab when store changes (e.g. from command palette)
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      setActiveTab(settingsTab)
+    }
+    setSettingsOpen(open)
+  }
 
   const [editor, setEditor] = useState<EditorSettings>(() => loadSettings("editor", DEFAULT_EDITOR))
   const [writing, setWriting] = useState<WritingSettings>(() => loadSettings("writing", DEFAULT_WRITING))
@@ -145,7 +158,7 @@ export function SettingsDialog() {
     saveSettings("appearance", appearance as unknown as Record<string, unknown>)
     saveSettings("ai", ai as unknown as Record<string, unknown>)
     saveSettings("privacy", privacy as unknown as Record<string, unknown>)
-    setOpen(false)
+    setSettingsOpen(false)
   }
 
   const FONT_MAP = {
@@ -155,7 +168,7 @@ export function SettingsDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={isSettingsOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[620px] max-h-[85vh] p-0 gap-0">
         <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle>Settings</DialogTitle>
@@ -197,6 +210,18 @@ export function SettingsDialog() {
             <TabsTrigger value="shortcuts" className="text-xs gap-1">
               <Keyboard className="size-3" />
               Shortcuts
+            </TabsTrigger>
+            <TabsTrigger value="export" className="text-xs gap-1">
+              <Download className="size-3" />
+              Export
+            </TabsTrigger>
+            <TabsTrigger value="import" className="text-xs gap-1">
+              <Upload className="size-3" />
+              Import
+            </TabsTrigger>
+            <TabsTrigger value="backup" className="text-xs gap-1">
+              <Database className="size-3" />
+              Backup
             </TabsTrigger>
           </TabsList>
 
@@ -588,6 +613,21 @@ export function SettingsDialog() {
               </div>
             </TabsContent>
 
+            {/* Export Tab */}
+            <TabsContent value="export" className="px-6 py-4">
+              <ExportPanel />
+            </TabsContent>
+
+            {/* Import Tab */}
+            <TabsContent value="import" className="px-6 py-4">
+              <ImportPanel />
+            </TabsContent>
+
+            {/* Backup Tab */}
+            <TabsContent value="backup" className="px-6 py-4">
+              <BackupPanel />
+            </TabsContent>
+
             {/* Shortcuts Tab */}
             <TabsContent value="shortcuts" className="px-6 py-4 space-y-2">
               <div className="text-xs font-medium mb-3">
@@ -624,7 +664,7 @@ export function SettingsDialog() {
             variant="ghost"
             size="sm"
             className="text-xs"
-            onClick={() => setOpen(false)}
+            onClick={() => setSettingsOpen(false)}
           >
             Cancel
           </Button>

@@ -48,8 +48,13 @@ const CATEGORY_OPTIONS = ['general', 'research', 'idea', 'todo', 'continuity', '
 
 const LINKED_TYPE_OPTIONS = ['', 'character', 'location', 'object', 'world', 'scene', 'chapter']
 
-export function NoteDetail() {
+interface NoteDetailProps {
+  noteId?: string
+}
+
+export function NoteDetail({ noteId: noteIdProp }: NoteDetailProps = {}) {
   const { selectedNoteId, setRightPanel, setSelectedNote } = useWriterStore()
+  const effectiveId = noteIdProp ?? selectedNoteId
   const { toast } = useToast()
   const [note, setNote] = useState<Note | null>(null)
   const [loading, setLoading] = useState(true)
@@ -57,10 +62,10 @@ export function NoteDetail() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchNote = useCallback(async () => {
-    if (!selectedNoteId) return
+    if (!effectiveId) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/notes/${selectedNoteId}`)
+      const res = await fetch(`/api/notes/${effectiveId}`)
       if (res.ok) {
         const data = await res.json()
         setNote(data)
@@ -70,7 +75,7 @@ export function NoteDetail() {
     } finally {
       setLoading(false)
     }
-  }, [selectedNoteId])
+  }, [effectiveId])
 
   useEffect(() => {
     fetchNote()

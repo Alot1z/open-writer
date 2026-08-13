@@ -128,6 +128,7 @@ export function EditorArea({ className }: EditorAreaProps) {
               onChange={handleContentChange}
               onWordCountChange={handleWordCountChange}
               placeholder="Start writing..."
+              typewriterMode={isTypewriterMode}
             />
           </motion.div>
         ) : (
@@ -204,6 +205,7 @@ export function EditorArea({ className }: EditorAreaProps) {
             onChange={handleContentChange}
             onWordCountChange={handleWordCountChange}
             placeholder="Start writing..."
+            typewriterMode={isTypewriterMode}
           />
         </div>
       )}

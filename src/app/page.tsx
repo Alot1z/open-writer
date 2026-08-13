@@ -23,6 +23,8 @@ import {
   TooltipProvider,
 } from "@/components/ui/tooltip"
 import { PenLine } from "lucide-react"
+import { FlowWidget } from "@/components/writer/flow-widget"
+import { useWritingSession } from "@/hooks/use-writing-session"
 
 export default function Home() {
   const {
@@ -37,6 +39,9 @@ export default function Home() {
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved")
   const [chapterTitle, setChapterTitle] = useState("")
   const [sceneTitle, setSceneTitle] = useState("")
+
+  // Initialize automatic writing session tracking
+  useWritingSession()
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -124,6 +129,7 @@ export default function Home() {
         <CommandPalette />
         <GlobalSearch />
         <SettingsDialogWithTrigger />
+        <FlowWidget />
       </TooltipProvider>
     )
   }
@@ -178,6 +184,7 @@ export default function Home() {
       <CommandPalette />
       <GlobalSearch />
       <SettingsDialogWithTrigger />
+      <FlowWidget />
     </TooltipProvider>
   )
 }
