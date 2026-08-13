@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from 'react'
 import { useWriterStore } from '@/store/writer-store'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
@@ -15,7 +14,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { History, Star, Plus, Clock } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { History, Star, Plus, Clock, RotateCcw } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 interface Version {
@@ -55,6 +65,7 @@ export function VersionsPanel() {
   const [versions, setVersions] = useState<Version[]>([])
   const [loading, setLoading] = useState(true)
   const [previewVersion, setPreviewVersion] = useState<Version | null>(null)
+  const [restoring, setRestoring] = useState(false)
 
   const fetchVersions = useCallback(async () => {
     if (!currentProjectId) return
@@ -102,6 +113,28 @@ export function VersionsPanel() {
       }
     } catch {
       // silent
+    }
+  }
+
+  const handleRestore = async (version: Version) => {
+    if (!version.sceneId || !version.content) return
+    setRestoring(true)
+    try {
+      const res = await fetch(`/api/scenes/${version.sceneId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: version.content }),
+      })
+      if (res.ok) {
+        toast({ title: 'Version restored', description: 'Scene content has been updated' })
+        await fetchVersions()
+      } else {
+        toast({ title: 'Restore failed', description: 'Could not update scene content', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Restore failed', description: 'Could not update scene content', variant: 'destructive' })
+    } finally {
+      setRestoring(false)
     }
   }
 
@@ -225,6 +258,41 @@ export function VersionsPanel() {
                               <p className="text-xs text-stone-400 italic">No content snapshot available</p>
                             )}
                           </div>
+                          {version.sceneId && version.content && (
+                            <>
+                              <Separator />
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full gap-1.5 text-xs"
+                                    disabled={restoring}
+                                  >
+                                    <RotateCcw className="h-3.5 w-3.5" />
+                                    {restoring ? 'Restoring...' : 'Restore this version'}
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Restore Version</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will replace the current scene content with this version&apos;s content. Are you sure you want to continue?
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleRestore(version)}
+                                      className="bg-amber-600 hover:bg-amber-700"
+                                    >
+                                      Restore
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </>
+                          )}
                         </div>
                       </DialogContent>
                     </Dialog>

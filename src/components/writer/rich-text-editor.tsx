@@ -46,6 +46,7 @@ interface RichTextEditorProps {
   placeholder?: string
   readOnly?: boolean
   className?: string
+  typewriterMode?: boolean
 }
 
 function countWords(text: string): number {
@@ -244,9 +245,12 @@ export function RichTextEditor({
   placeholder = 'Start writing...',
   readOnly = false,
   className,
+  typewriterMode = false,
 }: RichTextEditorProps) {
   const isInternalUpdate = useRef(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const editorScrollRef = useRef<HTMLDivElement | null>(null)
+  const typewriterRafRef = useRef<number | null>(null)
 
   const editor = useEditor({
     extensions: [
@@ -321,6 +325,7 @@ export function RichTextEditor({
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
+      if (typewriterRafRef.current) cancelAnimationFrame(typewriterRafRef.current)
     }
   }, [])
 
@@ -344,6 +349,45 @@ export function RichTextEditor({
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
   }, [editor])
 
+  // Typewriter mode scroll logic
+  useEffect(() => {
+    if (!editor || !typewriterMode) return
+
+    const scrollToCursor = () => {
+      if (!editorScrollRef.current) return
+      try {
+        const { from } = editor.state.selection
+        const coords = editor.view.coordsAtPos(from)
+        const scrollContainer = editorScrollRef.current
+        const scrollRect = scrollContainer.getBoundingClientRect()
+        const desiredY = scrollRect.top + scrollRect.height * 0.4 // slightly above center
+        const diff = coords.top - desiredY
+        if (Math.abs(diff) > 10) {
+          scrollContainer.scrollBy({
+            top: diff,
+            behavior: 'smooth',
+          })
+        }
+      } catch {
+        // coordsAtPos can fail in edge cases
+      }
+    }
+
+    const handleUpdate = () => {
+      if (typewriterRafRef.current) cancelAnimationFrame(typewriterRafRef.current)
+      typewriterRafRef.current = requestAnimationFrame(scrollToCursor)
+    }
+
+    editor.on('update', handleUpdate)
+    editor.on('selectionUpdate', handleUpdate)
+
+    return () => {
+      editor.off('update', handleUpdate)
+      editor.off('selectionUpdate', handleUpdate)
+      if (typewriterRafRef.current) cancelAnimationFrame(typewriterRafRef.current)
+    }
+  }, [editor, typewriterMode])
+
   if (!editor) {
     return (
       <div className={cn('animate-pulse bg-muted/30 rounded-md h-64', className)} />
@@ -354,7 +398,7 @@ export function RichTextEditor({
   const charCount = editor.storage.characterCount?.characters?.() ?? editor.getText().length
 
   return (
-    <div className={cn('flex flex-col h-full', className)}>
+    <div className={cn('flex flex-col h-full', typewriterMode && 'typewriter-mode', className)}>
       {!readOnly && (
         <div className="group/toolbar">
           <EditorToolbar editor={editor} addImage={addImage} addLink={addLink} />
@@ -362,7 +406,10 @@ export function RichTextEditor({
       )}
 
       {/* Editor Content */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <div
+        ref={editorScrollRef}
+        className={cn('flex-1 overflow-y-auto custom-scrollbar', typewriterMode && 'scroll-smooth')}
+      >
         <div className="max-w-3xl mx-auto px-8 py-6">
           <EditorContent
             editor={editor}
