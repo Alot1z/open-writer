@@ -1,0 +1,4018 @@
+# OPEN WRITER
+
+## Complete Autonomous Product Engineering Master Specification
+
+### Mission
+
+Build a production-quality, open-source, independent writing platform inspired by the publicly observable functionality and workflows of Novlr, while substantially extending it into a local-first writing operating environment with:
+
+* Windows desktop application
+* fully functional web application
+* offline-first operation
+* optional cloud synchronization
+* self-hosting
+* collaboration
+* author websites and publishing
+* structured story intelligence
+* autonomous AI agent
+* deterministic tool system
+* browser automation
+* secure sandbox execution
+* OpenSandbox integration
+* optional Kata / Firecracker / gVisor isolation
+* SUPERrr-FREE design intelligence and QA
+* Z.ai / GLM support
+* Ollama
+* LM Studio
+* OpenAI-compatible providers
+* MCP
+* CLI
+* open project format
+* complete import/export
+* real version history
+* real Windows `.exe` and installer artifacts
+
+The final product must be independently usable without Z.ai, without the original Novlr service, without an internet connection for core writing functionality, and without mandatory AI.
+
+---
+
+# 0. ABSOLUTE PRODUCT PRINCIPLES
+
+These principles are non-negotiable.
+
+## 0.1 Do not build a demo
+
+Do not produce:
+
+* fake buttons
+* fake analytics
+* fake synchronization
+* fake AI
+* fake collaboration
+* fake version history
+* mock export
+* mock sandboxing
+* placeholder pages
+* hard-coded sample data in production paths
+
+A feature is not complete because a UI exists.
+
+---
+
+## 0.2 Never confuse generated code with working software
+
+Every major feature must be:
+
+* implemented
+* integrated
+* persisted
+* tested
+* verified
+* documented
+
+---
+
+## 0.3 Never claim completion without evidence
+
+Use explicit statuses:
+
+```text
+NOT STARTED
+IN PROGRESS
+IMPLEMENTED
+TESTED
+VERIFIED
+NOT VERIFIED
+BLOCKED
+DEFERRED
+```
+
+Never replace:
+
+```text
+NOT VERIFIED
+```
+
+with:
+
+```text
+PASS
+```
+
+---
+
+## 0.4 Never guess when evidence is available
+
+Research first.
+
+Inspect the repository.
+
+Inspect the environment.
+
+Inspect available skills.
+
+Inspect current public documentation.
+
+Use actual browser behavior where appropriate.
+
+Do not invent what Novlr, Z.ai, OpenSandbox, Tauri, Kata, or any dependency does.
+
+---
+
+## 0.5 Preserve working code
+
+The current repository already contains a working initial vertical slice.
+
+Do not rewrite functioning components simply because a different implementation is aesthetically preferable.
+
+First understand the existing implementation.
+
+Refactor only when justified.
+
+---
+
+# 1. CURRENT REPOSITORY STATUS
+
+The existing project is:
+
+## INITIAL FUNCTIONAL VERTICAL SLICE
+
+It is NOT yet:
+
+* complete Open Writer
+* full Novlr feature parity
+* full online platform
+* complete offline-first system
+* Windows release
+* production self-hosting system
+* complete agent runtime
+* complete sandbox environment
+
+Existing implementation currently includes a useful foundation such as:
+
+* Next.js
+* Prisma / SQLite
+* TipTap
+* project/chapter/scene hierarchy
+* autosave foundation
+* focus mode
+* typewriter mode
+* characters
+* locations
+* objects
+* worldbuilding
+* timeline
+* relationships
+* basic continuity/health
+* basic AI provider abstraction
+* command palette
+* global search
+* UI themes
+* browser-tested flows
+
+Treat that as existing work.
+
+Build on it.
+
+---
+
+# 2. FIRST TASK: FULL CURRENT-STATE AUDIT
+
+Before significant new implementation:
+
+Inspect:
+
+* repository
+* Git status
+* Git history
+* package files
+* lockfiles
+* Prisma schema
+* database
+* API routes
+* frontend
+* editor
+* state management
+* UI components
+* CSS
+* configuration
+* environment files
+* tests
+* build system
+* existing AI layer
+* deployment files
+
+Create:
+
+```text
+docs/status/current-audit.md
+```
+
+Classify every major system:
+
+```text
+IMPLEMENTED
+PARTIALLY_IMPLEMENTED
+NOT_IMPLEMENTED
+BROKEN
+UNVERIFIED
+```
+
+Do not infer functionality from filenames.
+
+Actually inspect behavior.
+
+---
+
+# 3. FULL Z.AI ENVIRONMENT DISCOVERY
+
+The current Z.ai Agent Mode development environment is itself a powerful development environment.
+
+It may expose:
+
+* Bash
+* filesystem
+* browser
+* repository tools
+* MCP
+* process management
+* code execution
+* CI integrations
+* user-installed skills
+* additional platform tools
+
+You MUST inspect the actual available environment before major development.
+
+Never assume the environment is identical to another Z.ai session.
+
+---
+
+# 4. `/home/user_skills/` IS A DEVELOPMENT RESOURCE
+
+The environment may contain user-installed skills under:
+
+```text
+/home/user_skills/
+```
+
+You MUST inspect the relevant complete directory tree.
+
+Use Bash.
+
+Inspect both directories and files.
+
+For example:
+
+```bash
+find /home/user_skills -type d
+find /home/user_skills -type f
+```
+
+Then read relevant:
+
+* `SKILL.md`
+* README files
+* scripts
+* source code
+* manifests
+* configurations
+* examples
+* schemas
+* subskills
+* documentation
+
+Do not only inspect the top level.
+
+---
+
+# 5. `/DSH-GLM`
+
+`/DSH-GLM` is a filesystem-accessible development resource.
+
+Treat it as a local skill/workspace accessed through the available Bash environment.
+
+Do NOT invent an API for it.
+
+First discover its actual contents and interfaces.
+
+Inspect:
+
+```bash
+find /DSH-GLM -type d
+find /DSH-GLM -type f
+```
+
+where the path exists and is accessible.
+
+Read its actual documentation and implementation.
+
+Determine:
+
+* what it does
+* entry points
+* scripts
+* inputs
+* outputs
+* dependencies
+* execution requirements
+* whether it is read-only or mutating
+* whether it supports multimodal analysis
+* whether it supports code analysis
+* whether it supports documents
+* whether it supports reports
+* whether it provides subskills
+
+Use its actual capabilities.
+
+Do not guess them.
+
+---
+
+# 6. COMPLETE USER-SKILL INVENTORY
+
+Create:
+
+```text
+docs/development/user-skills-inventory.md
+```
+
+Track:
+
+| Skill/path | Purpose | Entry point | Dependencies | Can modify files | Network | Used | Verified |
+| ---------- | ------- | ----------- | ------------ | ---------------- | ------- | ---- | -------- |
+
+Inspect all materially relevant skills under `/home/user_skills/`.
+
+Pay special attention to skills related to:
+
+* coding
+* architecture
+* multimodal analysis
+* documents
+* reporting
+* browser automation
+* research
+* testing
+* design
+* deployment
+* repository operations
+
+---
+
+# 7. ZAI-REPORT
+
+Search the actual environment for `zai-report`.
+
+For example:
+
+```bash
+find /home/user_skills -iname '*zai*report*'
+```
+
+and inspect the actual implementation/documentation.
+
+If available, use it as an engineering reporting capability for:
+
+* codebase audits
+* feature-parity reports
+* architecture reports
+* test reports
+* regression reports
+* security reports
+* release reports
+* Windows build reports
+* design reports
+* sandbox reports
+* status summaries
+
+Do not invent the invocation syntax.
+
+Do not treat its output as proof by itself.
+
+---
+
+# 8. SKILLS ARE DEVELOPMENT-TIME CAPABILITIES
+
+User skills are available to improve the development process.
+
+Do NOT automatically make:
+
+```text
+/home/user_skills/
+/DSH-GLM/
+zai-report
+```
+
+runtime dependencies of Open Writer.
+
+The finished application must remain independently deployable.
+
+If a runtime capability is desired, implement/package it properly within the application.
+
+---
+
+# 9. SKILL ORCHESTRATION
+
+Use specialist capabilities where useful.
+
+Conceptually:
+
+```text
+Coding
+→ primary coding tools / Bash / repository tools
+
+Architecture
+→ DSH-GLM or relevant architecture skill
+
+Design
+→ SUPERrr-FREE
+
+Visual/document analysis
+→ DSH-GLM if its actual capabilities support it
+
+Reports
+→ zai-report if available
+
+Research
+→ browser/web tools
+
+Sandbox
+→ OpenSandbox
+
+Windows build
+→ Windows CI
+
+Testing
+→ native test tooling
+```
+
+Do not invoke every skill on every task.
+
+Use the smallest reliable combination.
+
+---
+
+# 10. SKILL RESULTS REQUIRE VERIFICATION
+
+Skills may produce:
+
+* recommendations
+* plans
+* generated code
+* analyses
+* reports
+* screenshots
+* design feedback
+
+These are inputs to engineering.
+
+They are not automatically truth.
+
+For example:
+
+If a skill says:
+
+```text
+Windows build passes
+```
+
+inspect the actual CI result.
+
+If it says:
+
+```text
+design is accessible
+```
+
+run actual accessibility checks.
+
+If it says:
+
+```text
+feature complete
+```
+
+verify the feature.
+
+---
+
+# 11. STORAGE / SANDBOX ENVIRONMENT RESEARCH
+
+Inspect the actual environment where necessary.
+
+Do not make assumptions about:
+
+* PolarFS
+* mounted filesystems
+* persistence
+* remote storage
+* local caches
+* KVM
+* Kata
+* Dragonball
+* LifseaOS
+* Kangaroo kernel
+
+If useful, inspect:
+
+```bash
+mount
+df -h
+df -T
+findmnt
+uname -a
+cat /etc/os-release
+```
+
+and other safe diagnostics.
+
+Distinguish:
+
+```text
+VERIFIED
+OBSERVED
+INFERRED
+UNKNOWN
+```
+
+in documentation.
+
+---
+
+# 12. Z.AI / CHAT.Z.AI ARCHITECTURE POLICY
+
+Do NOT claim to have reproduced or reverse-engineered the private backend of `chat.z.ai`.
+
+Do not claim unverified internal infrastructure as fact.
+
+The pasted observations about:
+
+* Kata
+* KVM
+* LifseaOS
+* Kangaroo
+* Dragonball
+* PolarFS
+* Alibaba Function Compute
+
+are architectural clues and hypotheses unless independently verified.
+
+Use publicly available open-source systems instead.
+
+---
+
+# 13. OPENSANDBOX
+
+Use the public Alibaba OpenSandbox project as the concrete open-source sandbox reference and, where appropriate, integration target.
+
+Research its current:
+
+* SDKs
+* CLI
+* MCP
+* sandbox protocol
+* lifecycle server
+* runtime
+* command execution
+* filesystem
+* code interpreter
+* browser
+* Playwright
+* desktop
+* network controls
+* credential injection
+* secure runtimes
+
+Use current public documentation and source.
+
+Verify licenses before reuse.
+
+---
+
+# 14. OPEN SANDBOX ROLE
+
+OpenSandbox is an execution substrate.
+
+It is NOT the core product.
+
+Open Writer remains:
+
+```text
+writing application
++
+story system
++
+agent
++
+tools
+```
+
+OpenSandbox provides isolated execution for appropriate tasks.
+
+---
+
+# 15. KATA / FIRECRACKER / GVISOR
+
+Evaluate:
+
+* Kata Containers
+* Firecracker
+* gVisor
+* QEMU
+* Dragonball
+* WASI
+
+Choose execution backends based on:
+
+* security
+* platform
+* startup
+* memory
+* performance
+* complexity
+* availability
+
+Do not force microVMs onto deterministic operations.
+
+---
+
+# 16. DRAGONBALL
+
+Research the currently valid public Dragonball implementation and its relationship with Kata.
+
+Do not rely on outdated repository names.
+
+Verify:
+
+* current repository
+* license
+* runtime integration
+* capabilities
+* performance
+* maintenance status
+
+Treat Dragonball as a potential Linux high-isolation backend.
+
+---
+
+# 17. WINDOWS EXECUTION REALITY
+
+Kata/KVM-style Linux microVM infrastructure must NOT become a prerequisite for the Windows desktop application.
+
+Windows desktop should have its own local execution strategy.
+
+Investigate:
+
+* Windows Job Objects
+* restricted process tokens
+* AppContainer
+* Windows Sandbox
+* WASI
+* helper-process isolation
+
+Use the strongest practical isolation appropriate to the task.
+
+---
+
+# 18. PRIMARY PRODUCT TARGET
+
+Build:
+
+# OPEN WRITER
+
+An independent professional writing platform with:
+
+* web application
+* Windows desktop
+* local-first storage
+* optional cloud services
+* story intelligence
+* agent runtime
+* AI providers
+* design intelligence
+* sandbox execution
+* publishing
+* author sites
+* self-hosting
+
+---
+
+# 19. NOVLR RESEARCH POLICY
+
+Research the current publicly available Novlr product.
+
+Use:
+
+* official website
+* official help center
+* official public changelog
+* official public documentation
+* normal browser-observable behavior
+
+Research current behavior, not old memory.
+
+---
+
+# 20. NOVLR FUNCTIONAL REFERENCE
+
+Research and implement the useful behavior surrounding:
+
+* projects
+* project hierarchy
+* chapters
+* scenes
+* writing studio
+* notes
+* comments
+* suggestions
+* focus mode
+* typewriter mode
+* Flow widget
+* goals
+* streaks
+* writing sprints
+* analytics
+* Words Written
+* Current Word Count
+* version history
+* named versions
+* permanent versions
+* archive
+* restore
+* sharing
+* collaboration
+* permissions
+* offline
+* synchronization
+* import
+* export
+* proofreading
+* author sites
+* publishing
+* progress/notifications
+* backups
+
+Do not assume the list is exhaustive.
+
+Continuously compare against current public Novlr behavior.
+
+---
+
+# 21. COPYRIGHT / INDEPENDENT IMPLEMENTATION
+
+Use Novlr as inspiration and behavioral research.
+
+Do NOT copy:
+
+* source code
+* proprietary assets
+* private APIs
+* trademarks
+* logos
+* artwork
+* exact CSS
+* exact layout
+* exact visual composition
+* proprietary fonts/assets unless independently licensed
+* distinctive decorative elements
+
+Do not attempt to make copied work "undetectable."
+
+The result should be genuinely independently authored.
+
+---
+
+# 22. ORIGINALITY PIPELINE
+
+Use:
+
+```text
+REFERENCE
+↓
+OBSERVABLE BEHAVIOR
+↓
+ABSTRACT UX REQUIREMENT
+↓
+OPEN WRITER DESIGN DECISION
+↓
+INDEPENDENT IMPLEMENTATION
+↓
+SUPERrr-FREE REVIEW
+```
+
+Never:
+
+```text
+REFERENCE SCREENSHOT
+↓
+TRACE / COPY
+```
+
+---
+
+# 23. REQUIREMENTS TRACEABILITY
+
+Create:
+
+```text
+docs/requirements.md
+```
+
+Every requirement gets an ID.
+
+Example:
+
+```text
+REQ-EDITOR-001
+REQ-OFFLINE-001
+REQ-SYNC-001
+REQ-WINDOWS-001
+REQ-AGENT-001
+REQ-SANDBOX-001
+REQ-DESIGN-001
+```
+
+Every requirement maps to:
+
+```text
+requirement
+implementation
+tests
+documentation
+status
+```
+
+---
+
+# 24. FEATURE MATRIX
+
+Create:
+
+```text
+docs/research/feature-matrix.md
+```
+
+Use:
+
+| ID | Reference behavior | Source | Verified | Our implementation | Test | Status |
+| -- | ------------------ | ------ | -------- | ------------------ | ---- | ------ |
+
+Do not mark a feature complete because a screen exists.
+
+---
+
+# 25. ARCHITECTURE
+
+Use clean separation:
+
+```text
+Presentation
+↓
+Application Core
+↓
+Domain Model
+↓
+Data Layer
+↓
+Sync
+↓
+Agent/Tools
+↓
+Execution
+↓
+Infrastructure
+```
+
+Avoid coupling.
+
+---
+
+# 26. CLIENTS
+
+Support:
+
+* Windows desktop
+* web
+* browser/PWA
+* CLI
+* self-hosted server
+
+Share domain logic wherever practical.
+
+---
+
+# 27. WINDOWS TECHNOLOGY
+
+Evaluate Tauri 2 as the primary desktop target.
+
+Document the decision in:
+
+```text
+docs/architecture/desktop-framework.md
+```
+
+If another technology is selected, provide evidence.
+
+---
+
+# 28. MONOREPO
+
+Use a structure such as:
+
+```text
+apps/
+  web/
+  desktop/
+  server/
+  cli/
+
+packages/
+  core/
+  domain/
+  database/
+  editor/
+  ui/
+  search/
+  analytics/
+  entities/
+  sync/
+  import/
+  export/
+  ai/
+  agent/
+  tools/
+  sandbox/
+  design/
+  superrr-free/
+
+docs/
+tests/
+scripts/
+```
+
+Adapt as necessary.
+
+---
+
+# 29. DOMAIN MODEL
+
+Core entities:
+
+```text
+Project
+ProjectSection
+Chapter
+Scene
+Document
+Note
+Comment
+Suggestion
+Version
+Snapshot
+Character
+Location
+Object
+Faction
+Concept
+Event
+Relationship
+Timeline
+Tag
+Attachment
+Goal
+WritingSession
+WritingEvent
+ShareLink
+Collaborator
+Permission
+ResearchSource
+ResearchEntry
+AgentTask
+AgentArtifact
+AIProvider
+Tool
+ToolExecution
+Sandbox
+SyncOperation
+Backup
+ExportJob
+```
+
+---
+
+# 30. PROJECT SYSTEM
+
+Support:
+
+* multiple projects
+* create
+* rename
+* duplicate
+* archive
+* restore
+* delete
+* metadata
+* synopsis
+* description
+* cover
+* tags
+* genre
+* settings
+* goals
+* statistics
+
+---
+
+# 31. MANUSCRIPT HIERARCHY
+
+Support:
+
+```text
+Project
+→ Part
+→ Act
+→ Chapter
+→ Scene
+→ Document
+```
+
+Allow:
+
+* arbitrary nesting
+* reorder
+* move
+* duplicate
+* archive
+* restore
+* drag/drop
+
+---
+
+# 32. EDITOR
+
+Build a professional rich-text long-form editor.
+
+Support:
+
+* headings
+* paragraphs
+* bold
+* italic
+* underline where appropriate
+* links
+* lists
+* blockquotes
+* highlights
+* alignment
+* undo
+* redo
+* copy
+* paste
+* keyboard shortcuts
+* search
+* replace
+* spell check
+* grammar
+* comments
+* suggestions
+* word count
+* character count
+
+---
+
+# 33. EDITOR ARCHITECTURE
+
+Evaluate:
+
+* TipTap/ProseMirror
+* Lexical
+* custom structured document model
+
+Choose based on:
+
+* long-document performance
+* collaboration
+* comments
+* versioning
+* selection anchoring
+* export
+* accessibility
+* serialization
+
+Do not make the decision based only on popularity.
+
+---
+
+# 34. LONG DOCUMENT PERFORMANCE
+
+Benchmark:
+
+* 10k words
+* 50k
+* 100k
+* 250k+
+
+Support large projects.
+
+Use:
+
+* virtualization
+* incremental rendering
+* lazy loading
+* efficient state updates
+* background persistence
+
+---
+
+# 35. FOCUS MODE
+
+Implement:
+
+* distraction-free writing
+* fullscreen
+* centered editor
+* configurable text width
+* configurable typewriter position
+* hidden UI
+* smooth transitions
+* keyboard exit
+
+---
+
+# 36. TYPEWRITER MODE
+
+Support:
+
+* top
+* center
+* lower center
+* custom vertical position
+
+---
+
+# 37. FLOW WIDGET
+
+Build:
+
+```text
+Goal
+Sprint
+Words
+Streak
+Focus
+Analytics
+Proofreading
+Agent
+```
+
+Allow:
+
+* collapse
+* hide
+* move
+* persist layout
+
+---
+
+# 38. GOALS
+
+Support:
+
+* daily
+* weekly
+* monthly
+* project
+* chapter
+* session
+* deadline
+* words
+* time
+
+Calculate:
+
+* pace
+* projection
+* remaining
+* completion
+* consistency
+
+---
+
+# 39. WRITING SPRINTS
+
+Support:
+
+* time sprint
+* word sprint
+* countdown
+* pause
+* resume
+* session result
+
+Persist sessions.
+
+---
+
+# 40. WRITING ANALYTICS
+
+Separate:
+
+```text
+Words Written
+```
+
+from:
+
+```text
+Current Word Count
+```
+
+Track:
+
+* additions
+* deletions
+* sessions
+* duration
+* WPM
+* active days
+* streak
+* goal progress
+* historical output
+
+Do not reconstruct historical data from current text.
+
+---
+
+# 41. MANUSCRIPT ANALYTICS
+
+Calculate locally:
+
+* chapters
+* scenes
+* sentence length
+* paragraph length
+* dialogue ratio
+* narration ratio
+* POV
+* character appearances
+* repeated words
+* repeated phrases
+
+---
+
+# 42. NOTES
+
+Support:
+
+* hierarchical notes
+* rich text
+* tags
+* attachments
+* backlinks
+* entity links
+* note word count
+
+Notes must remain separate from manuscript word count.
+
+---
+
+# 43. COMMENTS
+
+Support:
+
+* selection anchoring
+* comment
+* reply
+* edit
+* resolve
+* reopen
+* delete
+* navigation
+
+Build robust anchors.
+
+---
+
+# 44. COMMENT ANCHORING
+
+Use robust mechanisms such as:
+
+* structural node IDs
+* text anchors
+* surrounding text fingerprints
+* mapped positions
+
+If an anchor cannot be resolved safely:
+
+mark it unresolved.
+
+Never attach a comment to unrelated text.
+
+---
+
+# 45. SUGGESTIONS
+
+Support:
+
+* insertion
+* deletion
+* replacement
+* accept
+* reject
+* edit
+
+AI suggestions must not silently modify the manuscript.
+
+---
+
+# 46. VERSION HISTORY
+
+Implement:
+
+* autosave snapshots
+* named versions
+* permanent versions
+* compare
+* restore
+* branch
+* metadata
+* version timeline
+
+Version history must survive:
+
+* restart
+* offline
+* sync
+
+---
+
+# 47. REVISION GRAPH
+
+Where practical, allow:
+
+```text
+Draft A
+├── Draft B
+│   └── Draft C
+└── Alternative Draft
+```
+
+Do not expose technical Git complexity to normal writers.
+
+---
+
+# 48. IMPORT
+
+Support where practical:
+
+* DOCX
+* ODT
+* RTF
+* SCRIV
+* Markdown
+* TXT
+* HTML
+* EPUB
+* JSON
+* Open Writer archive
+
+Use:
+
+```text
+validate
+→ parse
+→ structure
+→ preview
+→ confirm
+→ import
+```
+
+---
+
+# 49. EXPORT
+
+Support:
+
+* DOCX
+* PDF
+* ODT
+* EPUB
+* RTF
+* HTML
+* Markdown
+* TXT
+* JSON
+* Open Writer archive
+
+Validate generated files.
+
+---
+
+# 50. ROUND-TRIP TESTING
+
+Test:
+
+```text
+import
+→ export
+→ import
+```
+
+for supported formats.
+
+Verify:
+
+* text
+* structure
+* metadata
+* encoding
+* chapter hierarchy
+
+---
+
+# 51. OPEN PROJECT FORMAT
+
+Create a documented portable project format.
+
+It must contain:
+
+* metadata
+* manuscript
+* entities
+* notes
+* timeline
+* history
+* attachments
+* settings
+
+Document:
+
+```text
+docs/data-format.md
+```
+
+---
+
+# 52. DATA OWNERSHIP
+
+The user must be able to export their data without cloud access where technically possible.
+
+No vendor lock-in.
+
+---
+
+# 53. LOCAL-FIRST
+
+Core data belongs locally first.
+
+Architecture:
+
+```text
+Local Database
+↓
+Change Log
+↓
+Optional Sync
+↓
+Remote Server
+```
+
+Do not build:
+
+```text
+server database
+↓
+temporary browser cache
+```
+
+and call it local-first.
+
+---
+
+# 54. LOCAL WINDOWS DATA
+
+The Windows application must maintain its writing data locally.
+
+It must continue writing when:
+
+* internet disappears
+* server is unavailable
+* AI is unavailable
+
+---
+
+# 55. WEB OFFLINE
+
+Evaluate:
+
+* IndexedDB
+* OPFS
+* service workers
+* WASM SQLite
+* local-first synchronization
+
+The browser must meaningfully operate offline after data is available locally.
+
+---
+
+# 56. SYNC ENGINE
+
+Support:
+
+* reconnect
+* queue
+* retry
+* backoff
+* partial sync
+* deletions
+* tombstones
+* conflicts
+* concurrent changes
+
+---
+
+# 57. CONFLICTS
+
+Never silently discard edits.
+
+Offer:
+
+* version A
+* version B
+* merge
+* keep A
+* keep B
+* branch
+
+---
+
+# 58. COLLABORATION
+
+Support:
+
+* owner
+* editor
+* commenter
+* reviewer
+* viewer
+
+Implement actual synchronization.
+
+---
+
+# 59. SHARING
+
+Share:
+
+* project overview
+* synopsis
+* chapter
+* selected content
+* full project
+
+Support:
+
+* revoke
+* permissions
+* expiry
+* password where appropriate
+
+---
+
+# 60. AUTHENTICATION
+
+Online system requires production-grade:
+
+* signup
+* login
+* logout
+* sessions
+* password reset
+* account deletion
+* authorization
+
+---
+
+# 61. STORY INTELLIGENCE
+
+Implement:
+
+* characters
+* locations
+* objects
+* factions
+* worldbuilding
+* timeline
+* relationships
+* graph
+
+---
+
+# 62. CHARACTER MODEL
+
+Include:
+
+* name
+* aliases
+* age
+* birthday
+* pronouns
+* appearance
+* personality
+* occupation
+* goals
+* fears
+* secrets
+* biography
+* arc
+* relationships
+* first appearance
+* last appearance
+* current location
+* notes
+* quotes
+* images
+
+---
+
+# 63. LOCATION MODEL
+
+Include:
+
+* name
+* description
+* geography
+* inhabitants
+* history
+* atmosphere
+* scenes
+* events
+* notes
+* images
+
+---
+
+# 64. OBJECT MODEL
+
+Include:
+
+* name
+* type
+* owner
+* location
+* history
+* significance
+* appearances
+* events
+* notes
+
+---
+
+# 65. WORLD BUILDING
+
+Support:
+
+* factions
+* cultures
+* religions
+* governments
+* organizations
+* technologies
+* magic
+* species
+* rules
+* concepts
+
+Do not hard-code one genre.
+
+---
+
+# 66. TIMELINE
+
+Support:
+
+* dates
+* times
+* durations
+* ranges
+* unknown dates
+* fictional calendars
+* locations
+* characters
+* objects
+* cause
+* consequence
+* source scene
+
+---
+
+# 67. RELATIONSHIP GRAPH
+
+Support typed edges:
+
+* loves
+* hates
+* knows
+* owns
+* lives_at
+* visits
+* causes
+* participates_in
+* appears_in
+
+---
+
+# 68. KNOWLEDGE INDEX
+
+Create structured retrieval.
+
+Do not feed the whole manuscript to every AI request.
+
+Retrieve:
+
+* relevant scenes
+* entities
+* notes
+* timeline
+* relationships
+* source evidence
+
+---
+
+# 69. CONTINUITY ENGINE
+
+Find possible:
+
+* date contradictions
+* age contradictions
+* location contradictions
+* relationship contradictions
+* object contradictions
+* knowledge contradictions
+* description contradictions
+* world-rule contradictions
+
+Every finding includes:
+
+* evidence
+* source
+* confidence
+* affected entities
+
+---
+
+# 70. PROJECT HEALTH
+
+Show:
+
+* manuscript state
+* unresolved comments
+* continuity warnings
+* orphan notes
+* dangling references
+* backup state
+* sync state
+* version state
+* entity health
+
+---
+
+# 71. AI ARCHITECTURE
+
+AI is optional.
+
+Create:
+
+```text
+AIProvider
+```
+
+Implement:
+
+* Z.ai
+* Ollama
+* LM Studio
+* OpenAI-compatible
+* custom endpoint
+* no-AI
+
+---
+
+# 72. AI CONTEXT
+
+Use:
+
+* selected text
+* current scene
+* current chapter
+* project summary
+* relevant characters
+* relevant locations
+* timeline
+* notes
+* source evidence
+
+Do not send unnecessary content.
+
+---
+
+# 73. AI PRIVACY
+
+For remote providers display:
+
+* provider
+* model
+* destination
+* context scope
+
+Local providers must keep data local.
+
+---
+
+# 74. WRITING AI
+
+Implement:
+
+* continue
+* rewrite
+* shorten
+* expand
+* clarity
+* tone
+* dialogue
+* description
+* brainstorming
+* synopsis
+* outline
+
+Default:
+
+SUGGEST
+
+not:
+
+AUTO-APPLY
+
+---
+
+# 75. STORY AI
+
+Implement:
+
+* character analysis
+* plot analysis
+* continuity
+* timeline
+* relationships
+* unresolved threads
+* foreshadowing
+* pacing
+* worldbuilding
+
+---
+
+# 76. AGENT
+
+The agent is not a chat feature.
+
+Use:
+
+```text
+Intent
+↓
+Plan
+↓
+Context
+↓
+Tool discovery
+↓
+Permission
+↓
+Execution
+↓
+Validation
+↓
+Observation
+↓
+Next action
+↓
+Result
+```
+
+---
+
+# 77. AGENT TASK STATE
+
+Store:
+
+* ID
+* goal
+* status
+* plan
+* current step
+* tool calls
+* observations
+* errors
+* artifacts
+* permissions
+* timestamps
+
+Support:
+
+* pause
+* resume
+* retry
+* cancel
+* recovery
+
+---
+
+# 78. TOOL REGISTRY
+
+Every tool requires:
+
+* name
+* description
+* schema
+* permission
+* side effects
+* execution mode
+* timeout
+* version
+
+---
+
+# 79. TOOL DOMAINS
+
+Implement:
+
+```text
+manuscript.*
+story.*
+character.*
+location.*
+timeline.*
+project.*
+analytics.*
+version.*
+comments.*
+search.*
+export.*
+import.*
+backup.*
+sync.*
+research.*
+design.*
+browser.*
+terminal.*
+sandbox.*
+process.*
+git.*
+```
+
+---
+
+# 80. DETERMINISTIC-FIRST
+
+If software can calculate it exactly:
+
+use software.
+
+Examples:
+
+Word count
+→ deterministic
+
+Search
+→ search index
+
+Timeline lookup
+→ database
+
+EPUB validation
+→ validator
+
+Design score
+→ SUPERrr-FREE
+
+AI should interpret results, not invent them.
+
+---
+
+# 81. AGENT PERMISSIONS
+
+Levels:
+
+```text
+READ_ONLY
+SUGGEST
+WRITE_WITH_CONFIRMATION
+FULL_ACCESS
+```
+
+Default:
+
+SUGGEST
+
+---
+
+# 82. AGENT ACTIVITY UI
+
+Show observable actions:
+
+```text
+✓ searched manuscript
+✓ retrieved timeline
+✓ loaded Anna
+⚠ possible contradiction
+```
+
+Do NOT expose hidden chain-of-thought.
+
+---
+
+# 83. AGENT ACTION LOG
+
+Record:
+
+* tool
+* timestamp
+* duration
+* result
+* error
+* artifact
+
+Avoid unnecessary manuscript-content logging.
+
+---
+
+# 84. AGENT TOOL DISCOVERY
+
+Do not place hundreds of tools in every model context.
+
+Discover tools based on:
+
+* task
+* permissions
+* environment
+* availability
+
+---
+
+# 85. MCP
+
+Expose appropriate internal tools through MCP.
+
+Do not duplicate business logic.
+
+---
+
+# 86. CLI
+
+Provide:
+
+```bash
+openwriter project inspect
+openwriter manuscript search
+openwriter timeline check
+openwriter design review
+openwriter export epub
+openwriter backup
+openwriter sync status
+```
+
+Adapt names as implementation requires.
+
+---
+
+# 87. SUPERrr-FREE INTEGRATION
+
+The existing SUPERrr-FREE project is a first-class development and design intelligence subsystem.
+
+It already provides, according to the supplied project state:
+
+* measured design corpus
+* page structures
+* blueprints
+* design tokens
+* silhouettes
+* section patterns
+* color systems
+* typography systems
+* spacing system
+* motion system
+* reference pages
+* anti-slop heuristics
+* deterministic page review
+* CLI
+* library
+* MCP wrapper
+* pipeline
+* scaffolding
+* watch
+* diff
+* URL/stdin review
+
+Integrate the importable library where possible.
+
+Keep MCP available for external agents.
+
+---
+
+# 88. SUPERrr-FREE DESIGN LOOP
+
+For significant UI:
+
+```text
+UX goal
+↓
+current design system
+↓
+SUPERrr-FREE
+↓
+blueprint
+↓
+implementation
+↓
+browser
+↓
+SUPERrr-FREE review
+↓
+accessibility
+↓
+visual review
+↓
+fix
+```
+
+---
+
+# 89. DESIGN ORIGINALITY
+
+Do not use SUPERrr-FREE to reproduce Novlr's exact visuals.
+
+Use it to generate and validate OPEN WRITER's own design system.
+
+---
+
+# 90. DESIGN SYSTEM
+
+Define:
+
+* typography
+* colors
+* spacing
+* radii
+* shadows
+* borders
+* motion
+* icons
+* component states
+
+Centralize tokens.
+
+---
+
+# 91. DESIGN QA
+
+Review:
+
+* every major route
+* editor
+* project view
+* dashboards
+* settings
+* dialogs
+* author site
+* sharing
+* mobile layout
+
+---
+
+# 92. AUTHOR SITES
+
+Build an independent author website system.
+
+Support:
+
+* author profile
+* books
+* pages
+* bio
+* links
+* blog
+* newsletter
+* themes
+* preview
+* publish/unpublish
+* custom domain architecture
+
+Do not copy Novlr's site templates.
+
+---
+
+# 93. PUBLISHING
+
+Support:
+
+```text
+draft
+→ preview
+→ validate
+→ publish
+```
+
+Book publishing/export:
+
+```text
+draft
+→ export
+→ validate
+→ preview
+→ final
+```
+
+---
+
+# 94. RESEARCH SYSTEM
+
+Create research notes with:
+
+* title
+* source
+* URL
+* author where available
+* date
+* summary
+* tags
+* linked entities
+
+Distinguish:
+
+FACT
+INFERENCE
+UNCERTAIN
+OPINION
+
+Do not fabricate sources.
+
+---
+
+# 95. BROWSER AGENT
+
+Support isolated browser sessions for:
+
+* research
+* reference analysis
+* website QA
+* publishing preview
+* UI testing
+
+Capabilities:
+
+* open
+* navigate
+* click
+* type
+* scroll
+* inspect
+* extract
+* screenshot
+
+---
+
+# 96. PLAYWRIGHT
+
+Use Playwright or equivalent where appropriate for:
+
+* browser testing
+* UI inspection
+* screenshots
+* responsive verification
+* automated interaction
+
+---
+
+# 97. SANDBOX EXECUTION
+
+Create:
+
+```text
+ExecutionBackend
+```
+
+Backends:
+
+* LocalProcess
+* WASI
+* OpenSandbox
+* RemoteSandbox
+* Kata
+* Firecracker
+* gVisor
+
+Select based on:
+
+* task risk
+* platform
+* available infrastructure
+* performance
+
+---
+
+# 98. SANDBOX USAGE
+
+Use sandboxing for:
+
+* untrusted code
+* generated code
+* browser tasks
+* arbitrary CLI execution
+* conversion tools
+* research automation
+* isolated builds
+
+Do not sandbox ordinary word counting.
+
+---
+
+# 99. SANDBOX SECURITY
+
+Provide:
+
+* scoped filesystem
+* CPU limit
+* RAM limit
+* disk limit
+* process limit
+* timeout
+* network policy
+* credential isolation
+
+Default arbitrary code execution:
+
+NO NETWORK
+
+---
+
+# 100. CREDENTIALS
+
+Never expose:
+
+* API keys
+* SSH keys
+* session cookies
+* unrelated credentials
+
+to untrusted workloads.
+
+Use controlled credential injection.
+
+---
+
+# 101. ONLINE SERVER
+
+Conceptually:
+
+```text
+Web
+↓
+API
+↓
+Auth
+↓
+Application Core
+↓
+Agent
+↓
+Tool Registry
+↓
+Sandbox Scheduler
+↓
+OpenSandbox
+↓
+Kata / Firecracker / gVisor
+```
+
+---
+
+# 102. OFFLINE WINDOWS
+
+Conceptually:
+
+```text
+Windows
+↓
+Tauri
+↓
+Shared Core
+↓
+SQLite
+↓
+Local tools
+↓
+Optional local AI
+```
+
+No cloud required for core writing.
+
+---
+
+# 103. ONLINE/OFFLINE TOOL PARITY
+
+The same tool interface must work in both modes.
+
+Example:
+
+```text
+manuscript.search
+```
+
+Offline:
+
+```text
+local SQLite
+```
+
+Online:
+
+```text
+server database
+```
+
+Example:
+
+```text
+browser.open
+```
+
+Offline:
+
+```text
+local browser where supported
+```
+
+Online:
+
+```text
+sandbox browser
+```
+
+Example:
+
+```text
+terminal.exec
+```
+
+Offline:
+
+```text
+restricted local executor
+```
+
+Online:
+
+```text
+OpenSandbox
+```
+
+Do not duplicate business logic.
+
+---
+
+# 104. SELF-HOSTING
+
+Provide:
+
+* Dockerfile
+* docker-compose.yml
+* environment configuration
+* database
+* web
+* API
+* sync
+* optional agent
+* optional OpenSandbox
+
+Document installation.
+
+---
+
+# 105. CLOUD SCALE PATH
+
+Small deployment:
+
+* SQLite or simple database
+* single server
+
+Large deployment:
+
+* Postgres
+* object storage
+* worker queue
+* OpenSandbox
+* Kubernetes
+
+Do not require Kubernetes for small installations.
+
+---
+
+# 106. JOB SYSTEM
+
+Use jobs for:
+
+* large import
+* export
+* backup
+* publishing
+* AI analysis
+* sandbox execution
+* synchronization
+
+Support:
+
+* queue
+* progress
+* retry
+* cancel
+* result
+* artifact
+
+---
+
+# 107. WINDOWS DESKTOP
+
+The project MUST produce a real Windows application.
+
+Use Tauri 2 unless documented evidence says otherwise.
+
+Required output:
+
+```text
+Windows executable
+Windows installer
+portable build where practical
+checksums
+release metadata
+```
+
+---
+
+# 108. WINDOWS BUILD PIPELINE
+
+Create:
+
+```text
+.github/workflows/windows.yml
+```
+
+Use a real Windows runner.
+
+Build:
+
+* frontend
+* Rust
+* Tauri
+* installer
+
+Run tests.
+
+Upload artifacts.
+
+---
+
+# 109. WINDOWS CI
+
+At minimum:
+
+1. checkout
+2. install dependencies
+3. install Rust
+4. build frontend
+5. build Tauri
+6. test
+7. package
+8. checksum
+9. upload artifacts
+
+---
+
+# 110. WINDOWS RUNTIME VERIFICATION
+
+Use a real Windows environment when available.
+
+Verify:
+
+* install
+* launch
+* create project
+* edit
+* save
+* close
+* reopen
+* search
+* import
+* export
+* version history
+* backup
+* restore
+* focus mode
+* settings
+* updater
+
+---
+
+# 111. BUILT VS VERIFIED
+
+Track separately:
+
+```text
+WINDOWS_BUILT
+WINDOWS_TESTED
+WINDOWS_RUNTIME_VERIFIED
+WINDOWS_VISUALLY_VERIFIED
+RELEASE_VERIFIED
+```
+
+Do not conflate them.
+
+---
+
+# 112. WINDOWS ARTIFACT DIRECTORY
+
+Create:
+
+```text
+release/
+  windows/
+  web/
+  docker/
+  checksums/
+  release-notes/
+```
+
+The final release MUST contain actual Windows artifacts.
+
+---
+
+# 113. WINDOWS INSTALLER
+
+Support:
+
+* NSIS
+* MSI where appropriate
+
+Use native Windows builds for Windows-specific packaging.
+
+---
+
+# 114. WINDOWS SIGNING
+
+Support optional Authenticode signing.
+
+Never commit signing certificates.
+
+---
+
+# 115. WEB APPLICATION
+
+The web version must be the actual writing application.
+
+It is not merely:
+
+* marketing page
+* read-only interface
+* preview
+
+It must include the full applicable writing experience.
+
+---
+
+# 116. PWA
+
+Where practical:
+
+* installable
+* offline capable
+* local storage
+* update handling
+
+---
+
+# 117. AUTHENTICATION
+
+Production authentication required online.
+
+---
+
+# 118. TELEMETRY
+
+Default:
+
+NO TELEMETRY
+
+NO ADS
+
+NO TRACKING
+
+No manuscript analytics should leave the device by default.
+
+---
+
+# 119. SECURITY
+
+Test:
+
+* XSS
+* CSRF
+* SSRF
+* path traversal
+* command injection
+* malicious archives
+* permission bypass
+* unauthorized access
+* sandbox escape assumptions
+* insecure secrets
+
+---
+
+# 120. IMPORT SECURITY
+
+Imported archives are untrusted.
+
+Protect against:
+
+* path traversal
+* zip bombs
+* malicious symlinks
+* executable payloads
+* oversized decompression
+
+---
+
+# 121. PUBLIC AUTHOR SITE SECURITY
+
+Never expose:
+
+* drafts
+* private notes
+* unpublished chapters
+* internal metadata
+
+---
+
+# 122. BACKUPS
+
+Support:
+
+* automatic
+* manual
+* scheduled
+* cloud optional
+* restore
+
+Verify backup integrity.
+
+---
+
+# 123. DATA INTEGRITY
+
+Create:
+
+```text
+project.integrity.check
+```
+
+Detect:
+
+* orphan records
+* missing references
+* broken comment anchors
+* invalid versions
+* invalid attachments
+* inconsistent entities
+
+---
+
+# 124. RECOVERY
+
+Create safe repair tooling.
+
+Repair must:
+
+* create backup
+* preview changes
+* ask confirmation if destructive
+
+---
+
+# 125. ERROR STATES
+
+Implement real states for:
+
+* sync failure
+* database failure
+* export failure
+* import failure
+* AI failure
+* sandbox failure
+* browser failure
+* offline
+* permission failure
+
+---
+
+# 126. CRASH RECOVERY
+
+Test:
+
+* application crash
+* browser crash
+* power loss
+* interrupted write
+* sync interruption
+* sandbox failure
+
+Protect user data.
+
+---
+
+# 127. PERFORMANCE
+
+Benchmark:
+
+* startup
+* project load
+* search
+* editor
+* save
+* versioning
+* import
+* export
+* sync
+* timeline
+* graph
+* agent
+
+---
+
+# 128. LARGE PROJECT FIXTURE
+
+Test:
+
+* 100 chapters
+* 1,000 scenes
+* 10,000 notes
+* 1,000 characters
+* 10,000 timeline events
+* 250k+ words
+
+---
+
+# 129. SEARCH
+
+Use real indexed search.
+
+Evaluate SQLite FTS5 or equivalent.
+
+Do not use full-table scans for every interactive search.
+
+---
+
+# 130. GRAPH
+
+Use filtering and progressive loading.
+
+Do not render massive graphs indiscriminately.
+
+---
+
+# 131. TIMELINE
+
+Support:
+
+* filtering
+* zoom
+* grouping
+* character filter
+* location filter
+* event type
+
+---
+
+# 132. ACCESSIBILITY
+
+Support:
+
+* keyboard
+* screen reader
+* focus indicators
+* semantic markup
+* reduced motion
+* contrast
+* scalable text
+
+Run actual accessibility checks.
+
+---
+
+# 133. RESPONSIVE DESIGN
+
+Support:
+
+* desktop
+* tablet
+* mobile browser
+
+Do not force desktop's three-column layout onto mobile.
+
+---
+
+# 134. UI STATES
+
+Every important screen must have:
+
+* loading
+* empty
+* error
+* success
+* offline
+* permission denied
+
+---
+
+# 135. COMMAND PALETTE
+
+Provide:
+
+Ctrl+K
+
+Commands for:
+
+* navigation
+* creation
+* search
+* export
+* backup
+* agent
+* focus mode
+* timeline
+* graph
+* settings
+
+---
+
+# 136. KEYBOARD SHORTCUTS
+
+At minimum:
+
+Ctrl+K
+Ctrl+P
+Ctrl+F
+Ctrl+H
+Ctrl+S
+Ctrl+Z
+Ctrl+Shift+Z
+Escape
+
+Allow customization where practical.
+
+---
+
+# 137. PROJECT HEALTH
+
+Create automated health checks covering:
+
+* manuscript
+* entities
+* timeline
+* notes
+* comments
+* versions
+* backups
+* sync
+* unresolved issues
+
+---
+
+# 138. AGENT CONTEXT
+
+The agent should retrieve structured context rather than stuffing the entire project into the model.
+
+---
+
+# 139. AGENT MEMORY
+
+Separate:
+
+* task memory
+* project knowledge
+* user preferences
+* agent operational memory
+
+Do not mix indiscriminately.
+
+---
+
+# 140. AGENT COST CONTROL
+
+Use:
+
+* caching
+* retrieval
+* summaries
+* selective context
+* provider routing
+
+Avoid unnecessary huge model calls.
+
+---
+
+# 141. MODEL ROUTING
+
+Use different models for:
+
+* autocomplete
+* editing
+* analysis
+* agent reasoning
+* research
+
+where practical.
+
+---
+
+# 142. MULTI-AGENT
+
+Only use specialized agents when useful.
+
+Possible:
+
+* WriterAgent
+* StoryAgent
+* ResearchAgent
+* DesignAgent
+* ProjectAgent
+
+All should share the same controlled tool registry.
+
+---
+
+# 143. AGENT HANDOFF
+
+Use explicit task state between agents.
+
+Do not depend on hidden conversational state.
+
+---
+
+# 144. AGENT ARTIFACTS
+
+Save:
+
+* reports
+* screenshots
+* exports
+* diffs
+* generated files
+* test results
+
+and associate them with tasks.
+
+---
+
+# 145. AGENT LOOP PROTECTION
+
+Limits:
+
+* tool-call count
+* timeout
+* retry count
+* sandbox lifetime
+* resource consumption
+
+Prevent infinite autonomous loops.
+
+---
+
+# 146. TOOL RESULT VALIDATION
+
+Validate all tool input/output schemas.
+
+Malformed tool calls must fail safely.
+
+---
+
+# 147. DEVELOPMENT AGENT
+
+Use the Z.ai Agent Mode environment to:
+
+* inspect repository
+* edit code
+* run commands
+* run tests
+* inspect browser
+* use skills
+* inspect logs
+* trigger CI
+* inspect artifacts
+* fix errors
+
+The development environment may be much more capable than the final runtime.
+
+Exploit it.
+
+---
+
+# 148. NO SUDO ASSUMPTION
+
+Assume no root privileges unless verified.
+
+Use user-space approaches.
+
+Do not repeatedly attempt privilege escalation.
+
+---
+
+# 149. PROCESS MANAGEMENT
+
+Track:
+
+* PID
+* port
+* logs
+* lifecycle
+
+Do not terminate unrelated processes.
+
+---
+
+# 150. GIT
+
+Use meaningful commits.
+
+Examples:
+
+```text
+feat(editor): implement durable scene persistence
+
+feat(sync): add conflict-safe change queue
+
+fix(export): preserve chapter hierarchy
+
+feat(agent): add project health tool
+```
+
+---
+
+# 151. TESTING
+
+Implement:
+
+## Unit
+
+* domain
+* analytics
+* search
+* versioning
+* entities
+* timeline
+* tool schemas
+
+## Integration
+
+* database
+* sync
+* import/export
+* AI
+* sandbox
+
+## E2E
+
+* browser
+* desktop where available
+* online
+* offline
+
+---
+
+# 152. PROPERTY TESTING
+
+Use property tests where useful for:
+
+* serialization
+* word count
+* hierarchy
+* synchronization
+* version restoration
+
+---
+
+# 153. FUZZING
+
+Evaluate for:
+
+* import parsers
+* archives
+* structured documents
+* API validation
+* sandbox inputs
+
+---
+
+# 154. OFFLINE TEST
+
+Disable network.
+
+Test:
+
+* create
+* write
+* save
+* close
+* reopen
+* modify
+* search
+* export
+
+No required core operation may silently require the network.
+
+---
+
+# 155. SYNC TEST
+
+Test:
+
+* offline edits
+* reconnect
+* conflicts
+* deletions
+* concurrent edits
+* interrupted sync
+* retry
+
+---
+
+# 156. SANDBOX TEST
+
+Test:
+
+* create
+* command
+* filesystem
+* timeout
+* resource limit
+* network policy
+* cleanup
+
+---
+
+# 157. BROWSER SANDBOX TEST
+
+Test:
+
+* navigate
+* click
+* type
+* screenshot
+* extraction
+* destruction
+
+---
+
+# 158. AGENT TEST
+
+Test a multi-step agent task:
+
+```text
+goal
+→ planning
+→ tools
+→ validation
+→ result
+```
+
+Ensure no infinite loops.
+
+---
+
+# 159. DESIGN TEST
+
+Every major UI route:
+
+* render
+* SUPERrr-FREE review
+* browser interaction
+* accessibility
+* responsive check
+* visual regression
+
+---
+
+# 160. BUILD/RELEASE TEST
+
+Test:
+
+* Linux
+* web
+* Windows
+
+Do not release based solely on the development environment's build.
+
+---
+
+# 161. CI STATUS
+
+Maintain explicit status for:
+
+```text
+LINUX_BUILD
+WEB_BUILD
+WINDOWS_BUILD
+LINUX_TESTS
+WEB_TESTS
+WINDOWS_TESTS
+DESIGN_REVIEW
+SECURITY_REVIEW
+RELEASE_VERIFICATION
+```
+
+---
+
+# 162. CURRENT STATUS FILE
+
+Maintain:
+
+```text
+docs/STATUS.md
+```
+
+Include:
+
+* current phase
+* completed
+* in progress
+* blocked
+* not verified
+* known issues
+* next work
+
+---
+
+# 163. CURRENT AUDIT FILE
+
+Maintain:
+
+```text
+docs/status/current-audit.md
+```
+
+Update after major architecture changes.
+
+---
+
+# 164. TOOLING STATUS
+
+Create:
+
+```text
+docs/development/tooling.md
+```
+
+Track:
+
+* Bash
+* browser
+* DSH-GLM
+* zai-report
+* SUPERrr-FREE
+* OpenSandbox
+* Windows CI
+* other relevant skills
+
+Only mark "Used" when actually used.
+
+---
+
+# 165. ARCHITECTURE DECISION RECORDS
+
+Create:
+
+```text
+docs/architecture/adr/
+```
+
+Document major decisions:
+
+* editor
+* database
+* local-first model
+* sync
+* AI
+* agent
+* sandbox
+* OpenSandbox
+* Kata
+* Tauri
+* project format
+* author sites
+
+---
+
+# 166. CHANGELOG
+
+Maintain:
+
+```text
+CHANGELOG.md
+```
+
+---
+
+# 167. DEPENDENCIES
+
+Create:
+
+```text
+docs/dependencies.md
+```
+
+Track:
+
+* dependency
+* purpose
+* license
+* repository
+* version
+* reason
+* alternatives
+
+---
+
+# 168. OPEN SOURCE
+
+Choose an OSI-approved license.
+
+Document third-party licenses.
+
+Do not introduce incompatible proprietary dependencies.
+
+---
+
+# 169. SECURITY POLICY
+
+Create:
+
+```text
+SECURITY.md
+```
+
+---
+
+# 170. CONTRIBUTING
+
+Create:
+
+```text
+CONTRIBUTING.md
+```
+
+Include:
+
+* setup
+* build
+* testing
+* architecture
+* pull requests
+
+---
+
+# 171. README
+
+README must explain:
+
+* what Open Writer is
+* offline mode
+* Windows
+* web
+* self-hosting
+* AI
+* agent
+* sandbox
+* SUPERrr-FREE
+* development
+* licensing
+
+---
+
+# 172. RELEASE ARTIFACTS
+
+At release create:
+
+```text
+release/
+├── windows/
+│   ├── installer
+│   ├── portable
+│   └── checksums
+├── web/
+├── docker/
+└── release-notes/
+```
+
+Actual artifact names follow build tooling.
+
+---
+
+# 173. WINDOWS DELIVERABLE IS MANDATORY
+
+The project is not considered complete until:
+
+* Windows build configuration exists
+* Windows CI runs
+* Windows executable is produced
+* installer is produced
+* artifact is uploaded
+* checksum exists
+* runtime verification is documented
+
+---
+
+# 174. WINDOWS BUILD WORKFLOW
+
+Create:
+
+```text
+.github/workflows/windows.yml
+```
+
+The agent should be able to:
+
+* inspect
+* modify
+* trigger
+* inspect logs
+* inspect artifacts
+* diagnose
+* fix
+* rerun
+
+where repository permissions allow.
+
+---
+
+# 175. WINDOWS VERIFICATION
+
+Use a real Windows environment.
+
+If unavailable:
+
+```text
+WINDOWS BUILD: NOT VERIFIED
+```
+
+not:
+
+```text
+COMPLETE
+```
+
+---
+
+# 176. FINAL SUCCESS CRITERIA
+
+A user must be able to:
+
+1. download the Windows application
+2. install it
+3. launch it offline
+4. create a project
+5. create chapters
+6. create scenes
+7. write a large manuscript
+8. close
+9. reopen
+10. preserve writing
+11. use focus mode
+12. use typewriter mode
+13. use notes
+14. use comments
+15. create characters
+16. create locations
+17. create objects
+18. create timeline events
+19. inspect relationships
+20. use project health
+21. search
+22. set goals
+23. run writing sprints
+24. view analytics
+25. inspect version history
+26. restore versions
+27. import documents
+28. export documents
+29. back up
+30. restore
+31. use offline mode
+32. synchronize online
+33. collaborate
+34. share
+35. publish an author site
+36. optionally use Z.ai
+37. optionally use local AI
+38. use the agent
+39. use SUPERrr-FREE
+40. use sandboxed tools where enabled
+41. self-host the online platform
+
+---
+
+# 177. FINAL AGENT DIRECTIVE
+
+DO NOT declare the current vertical slice complete.
+
+DO NOT stop after browser verification.
+
+DO NOT stop after the web UI looks good.
+
+DO NOT stop after the database works.
+
+DO NOT stop after basic AI actions work.
+
+DO NOT stop after creating a Tauri configuration.
+
+DO NOT call a Windows build complete without an actual Windows artifact.
+
+DO NOT call Windows runtime verification complete without actual Windows execution.
+
+DO NOT call online synchronization complete without real sync tests.
+
+DO NOT call collaboration complete without multiple-user tests.
+
+DO NOT call offline complete without network-disabled testing.
+
+DO NOT call the agent complete without real multi-step tool execution.
+
+DO NOT call sandbox support complete without real sandbox execution.
+
+DO NOT call design integration complete without actual SUPERrr-FREE execution.
+
+DO NOT call skill integration complete unless the actual skill was inspected and used.
+
+---
+
+# 178. FIRST IMPLEMENTATION MILESTONE
+
+After the audit, make the next milestone:
+
+## REAL CROSS-PLATFORM PRODUCT FOUNDATION
+
+It must contain:
+
+```text
+shared application core
++
+local persistence
++
+web application
++
+Tauri desktop
++
+Windows CI
++
+real executable artifact
+```
+
+Do not wait until the end of the entire project to discover that the desktop architecture does not work.
+
+---
+
+# 179. SECOND MILESTONE
+
+Complete core writing parity:
+
+```text
+projects
+chapters
+scenes
+editor
+focus
+typewriter
+notes
+comments
+goals
+sprints
+analytics
+versions
+import
+export
+offline
+```
+
+---
+
+# 180. THIRD MILESTONE
+
+Complete story intelligence:
+
+```text
+characters
+locations
+objects
+world
+timeline
+relationships
+graph
+continuity
+project health
+```
+
+---
+
+# 181. FOURTH MILESTONE
+
+Complete online functionality:
+
+```text
+authentication
+sync
+sharing
+collaboration
+permissions
+backups
+author sites
+publishing
+```
+
+---
+
+# 182. FIFTH MILESTONE
+
+Complete intelligence:
+
+```text
+AI providers
+agent runtime
+tool registry
+research
+SUPERrr-FREE
+MCP
+browser
+OpenSandbox
+secure execution
+```
+
+---
+
+# 183. SIXTH MILESTONE
+
+Complete release:
+
+```text
+Windows
+Web
+Docker
+Self-host
+CI
+Security
+Accessibility
+Performance
+Documentation
+```
+
+---
+
+# 184. AUTONOMOUS ENGINEERING LOOP
+
+For every major feature:
+
+```text
+INSPECT
+↓
+RESEARCH
+↓
+PLAN
+↓
+IMPLEMENT
+↓
+BUILD
+↓
+TEST
+↓
+RUN
+↓
+BROWSER VERIFY
+↓
+DESIGN VERIFY
+↓
+SECURITY VERIFY
+↓
+REPORT
+↓
+FIX
+↓
+RETEST
+↓
+DOCUMENT
+↓
+UPDATE STATUS
+```
+
+---
+
+# 185. FINAL ARCHITECTURE
+
+The intended long-term structure is:
+
+```text
+                              OPEN WRITER
+                                   │
+              ┌────────────────────┼────────────────────┐
+              │                    │                    │
+             WEB                WINDOWS             SELF-HOST
+              │                    │                    │
+              └────────────────────┼────────────────────┘
+                                   │
+                           APPLICATION CORE
+                                   │
+          ┌────────────────────────┼────────────────────────┐
+          │                        │                        │
+      Manuscript                 Story                  Productivity
+          │                        │                        │
+          └────────────────────────┼────────────────────────┘
+                                   │
+                              AGENT RUNTIME
+                                   │
+       ┌───────────────────────────┼───────────────────────────┐
+       │                           │                           │
+    Planner                    Tool Registry                Memory
+                                   │
+      ┌────────────────────────────┼────────────────────────────┐
+      │              │             │            │                │
+  Manuscript       Story        Design       Research        Project
+      │              │             │            │                │
+      └──────────────┴─────────────┼────────────┴────────────────┘
+                                   │
+                            EXECUTION LAYER
+                                   │
+                ┌──────────────────┼──────────────────┐
+                │                  │                  │
+              Local              WASM             Sandbox
+                │                                     │
+                │                              OpenSandbox
+                │                                     │
+                │                     ┌───────────────┼──────────────┐
+                │                     │               │              │
+                │                   gVisor          Kata         Firecracker
+                │                                     │
+                │                                 Dragonball
+                │
+                └──────────────────┬──────────────────┘
+                                   │
+                             AI PROVIDERS
+                                   │
+              ┌────────────────────┼────────────────────┐
+              │                    │                    │
+             Z.ai                Ollama         OpenAI-compatible
+              │                    │                    │
+             GLM               Local models          Custom
+```
+
+---
+
+# 186. FINAL PHILOSOPHY
+
+OPEN WRITER should become:
+
+## A writing operating environment.
+
+Not merely:
+
+* a Novlr clone
+* a web editor
+* a chatbot
+* an AI wrapper
+* a SaaS dashboard
+
+It should combine:
+
+### Novlr-inspired writing workflow
+
+with:
+
+### local-first data ownership
+
+with:
+
+### structured story intelligence
+
+with:
+
+### autonomous agent orchestration
+
+with:
+
+### deterministic tools
+
+with:
+
+### SUPERrr-FREE design intelligence
+
+with:
+
+### OpenSandbox secure execution
+
+with:
+
+### optional microVM isolation
+
+with:
+
+### optional Z.ai/local AI
+
+with:
+
+### full web functionality
+
+with:
+
+### real Windows desktop software
+
+with:
+
+### self-hosting
+
+with:
+
+### open data
+
+with:
+
+### verifiable builds.
+
+---
+
+# 187. BEGIN
+
+Start now.
+
+First inspect:
+
+```text
+repository
+environment
+/home/user_skills/
+/DSH-GLM
+zai-report if present
+SUPERrr-FREE integration
+current application
+current tests
+current CI
+```
+
+Then create:
+
+```text
+docs/status/current-audit.md
+docs/STATUS.md
+docs/requirements.md
+docs/research/feature-matrix.md
+docs/development/environment.md
+docs/development/user-skills-inventory.md
+docs/development/tooling.md
+docs/architecture/overview.md
+```
+
+Then determine the highest-value implementation order.
+
+Do not ask the user to manually provide information that can be established by inspecting the repository, environment, available skills, public documentation, or available tools.
+
+Do not invent.
+
+Do not fake.
+
+Do not skip verification.
+
+Preserve existing working functionality.
+
+Build incrementally.
+
+Use the strongest available Z.ai Agent capabilities.
+
+Use `/home/user_skills/` intelligently.
+
+Use `/DSH-GLM` after inspecting its actual contents.
+
+Use `zai-report` if actually available.
+
+Use SUPERrr-FREE for design intelligence and validation.
+
+Use OpenSandbox for sandboxed execution where appropriate.
+
+Use real Windows CI to build and verify the Windows application.
+
+Keep the core product independent from Z.ai Agent Mode and from any development-only skill.
+
+The final deliverable is a complete, independent, open-source Open Writer platform with a real downloadable Windows executable and installer, a complete web application, offline-first writing, optional online synchronization, self-hosting, story intelligence, agent orchestration, secure tools, and a professional independent design system.
+
+Begin with repository and environment inspection.

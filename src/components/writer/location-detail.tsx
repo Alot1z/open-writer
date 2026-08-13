@@ -45,8 +45,13 @@ interface Location {
 
 const TYPE_OPTIONS = ['city', 'town', 'village', 'building', 'room', 'landscape', 'region', 'country', 'other']
 
-export function LocationDetail() {
+interface LocationDetailProps {
+  locationId?: string
+}
+
+export function LocationDetail({ locationId: locationIdProp }: LocationDetailProps = {}) {
   const { selectedLocationId, setRightPanel, setSelectedLocation } = useWriterStore()
+  const effectiveId = locationIdProp ?? selectedLocationId
   const { toast } = useToast()
   const [location, setLocation] = useState<Location | null>(null)
   const [loading, setLoading] = useState(true)
@@ -54,10 +59,10 @@ export function LocationDetail() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchLocation = useCallback(async () => {
-    if (!selectedLocationId) return
+    if (!effectiveId) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/locations/${selectedLocationId}`)
+      const res = await fetch(`/api/locations/${effectiveId}`)
       if (res.ok) {
         const data = await res.json()
         setLocation(data)
@@ -67,7 +72,7 @@ export function LocationDetail() {
     } finally {
       setLoading(false)
     }
-  }, [selectedLocationId])
+  }, [effectiveId])
 
   useEffect(() => {
     fetchLocation()

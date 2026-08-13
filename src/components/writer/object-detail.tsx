@@ -46,8 +46,13 @@ interface StoryObject {
 
 const TYPE_OPTIONS = ['weapon', 'artifact', 'tool', 'clothing', 'vehicle', 'food', 'document', 'treasure', 'other']
 
-export function ObjectDetail() {
+interface ObjectDetailProps {
+  objectId?: string
+}
+
+export function ObjectDetail({ objectId: objectIdProp }: ObjectDetailProps = {}) {
   const { selectedObjectId, setRightPanel, setSelectedObject } = useWriterStore()
+  const effectiveId = objectIdProp ?? selectedObjectId
   const { toast } = useToast()
   const [object, setObject] = useState<StoryObject | null>(null)
   const [loading, setLoading] = useState(true)
@@ -55,10 +60,10 @@ export function ObjectDetail() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchObject = useCallback(async () => {
-    if (!selectedObjectId) return
+    if (!effectiveId) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/objects/${selectedObjectId}`)
+      const res = await fetch(`/api/objects/${effectiveId}`)
       if (res.ok) {
         const data = await res.json()
         setObject(data)
@@ -68,7 +73,7 @@ export function ObjectDetail() {
     } finally {
       setLoading(false)
     }
-  }, [selectedObjectId])
+  }, [effectiveId])
 
   useEffect(() => {
     fetchObject()
