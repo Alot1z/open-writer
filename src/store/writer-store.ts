@@ -17,6 +17,8 @@ export type PanelType =
   | 'agent' 
   | 'health' 
   | 'relationships'
+  | 'export'
+  | 'docs'
   | 'search'
   | 'settings'
 

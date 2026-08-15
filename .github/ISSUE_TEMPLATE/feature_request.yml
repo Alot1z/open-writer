@@ -1,0 +1,86 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for Open Writer
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a feature for Open Writer. Please fill out the sections below to help us understand and evaluate your request.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Motivation
+      description: What problem does this feature solve, or what motivates the request? If this is related to an issue, reference it here.
+      placeholder: "When writing a novel with many characters, it is difficult to keep track of which characters appear in which chapters. I have to manually search through each chapter to find character mentions."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the feature or change you would like to see.
+      placeholder: "Add a 'Character Appearances' section to each character profile that automatically lists all chapters and scenes where the character is mentioned or appears."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or features you have considered.
+      placeholder: "I considered using the global search to find character names, but this is manual and does not give a structured overview."
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Feature Area
+      description: Which area of Open Writer does this feature relate to?
+      options:
+        - Editor / Rich Text
+        - Chapter / Scene Management
+        - Characters
+        - Locations
+        - Objects
+        - World-Building
+        - Timeline
+        - Relationships
+        - AI Assistant / Agent
+        - Export
+        - Import
+        - Backup / Restore
+        - Search
+        - Settings
+        - Theme / Layout
+        - Goals / Sprints
+        - Comments / Notes
+        - Version History
+        - Project Health Monitor
+        - Core / Architecture
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Nice to have
+        - Would significantly improve my workflow
+        - Blocking my use of Open Writer
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any mockups, examples from other tools, references, or additional information.
+      placeholder: "Scrivener has a similar feature called 'References' that links characters to chapters. A screenshot is attached below."
+    validations:
+      required: false

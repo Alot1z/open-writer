@@ -5,10 +5,11 @@ export async function GET(request: NextRequest) {
   try {
     const projectId = request.nextUrl.searchParams.get('projectId')
     const sceneId = request.nextUrl.searchParams.get('sceneId')
+    const chapterId = request.nextUrl.searchParams.get('chapterId')
 
-    if (!projectId && !sceneId) {
+    if (!projectId && !sceneId && !chapterId) {
       return NextResponse.json(
-        { error: 'projectId or sceneId query parameter is required' },
+        { error: 'projectId, sceneId, or chapterId query parameter is required' },
         { status: 400 }
       )
     }
@@ -16,6 +17,9 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = {}
     if (projectId) where.projectId = projectId
     if (sceneId) where.sceneId = sceneId
+    if (chapterId) {
+      where.scene = { chapterId }
+    }
 
     const comments = await db.comment.findMany({
       where,
@@ -35,7 +39,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { projectId, sceneId, content, position, linkedType, linkedId } = body
+    const { projectId, sceneId, content, position, linkedType, linkedId, author } = body
 
     if (!projectId || !content) {
       return NextResponse.json(
@@ -43,6 +47,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    const metadata = JSON.stringify({ author: author || 'You' })
 
     const comment = await db.comment.create({
       data: {
@@ -52,6 +58,7 @@ export async function POST(request: NextRequest) {
         position: position ?? '{}',
         linkedType: linkedType ?? '',
         linkedId: linkedId ?? '',
+        metadata,
       },
     })
 

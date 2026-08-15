@@ -1,0 +1,123 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in Open Writer
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug in Open Writer. Please fill out the sections below to help us investigate and resolve the issue.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: "When I click the export button, the application freezes instead of exporting the document."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the behavior.
+      placeholder: |
+        1. Open a project with at least one chapter
+        2. Click on the "Export" button in the toolbar
+        3. Select "PDF" as the export format
+        4. Click "Export"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen.
+      placeholder: "The PDF file should be generated and downloaded."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened.
+      placeholder: "The application freezes and becomes unresponsive. No file is downloaded."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which part of Open Writer is affected?
+      options:
+        - Editor / Rich Text
+        - Chapter / Scene Navigation
+        - Characters Panel
+        - Locations Panel
+        - Objects Panel
+        - World-Building Panel
+        - Timeline
+        - Relationships
+        - AI Assistant / Agent
+        - Export
+        - Import
+        - Backup / Restore
+        - Search
+        - Settings
+        - Theme / Layout
+        - Goals / Sprints
+        - Comments / Notes
+        - Version History
+        - Project Health Monitor
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Open Writer Version
+      description: The version of Open Writer you are using.
+      placeholder: "0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      description: The browser and version you are using.
+      placeholder: "Chrome 120, Firefox 121, Safari 17"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      description: Your operating system and version.
+      placeholder: "macOS 14.2, Windows 11, Ubuntu 22.04"
+    validations:
+      required: true
+
+  - type: textarea
+    id: console-errors
+    attributes:
+      label: Console Errors
+      description: Any relevant error messages from the browser console or terminal.
+      placeholder: "Paste any error messages or stack traces here."
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other context, screenshots, or information that might help resolve the issue.
+      placeholder: "The issue only occurs with projects that have more than 10 chapters. Smaller projects export normally."
+    validations:
+      required: false
