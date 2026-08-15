@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,9 @@ import {
   Plus,
   FolderOpen,
   PenLine,
+  Shield,
+  WifiOff,
+  Lock,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -98,27 +102,44 @@ export function ProjectPicker({ onProjectSelect }: ProjectPickerProps) {
         transition={{ duration: 0.4, ease: 'easeOut' }}
         className="min-h-screen flex items-center justify-center p-6 bg-writer-bg"
       >
-        <div className="w-full max-w-lg">
-          {/* Logo & Title */}
+        <div className="w-full max-w-xl">
+          {/* Hero Logo */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.5 }}
-            className="text-center mb-10"
+            className="text-center mb-8"
           >
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-writer-accent-soft mb-4">
-              <PenLine className="h-8 w-8 text-writer-accent" />
+            {/* Pen icon in a bold amber badge */}
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-amber-500 mb-5 shadow-lg shadow-amber-500/20">
+              <PenLine className="h-10 w-10 text-white" />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight" style={{ fontFamily: "'Georgia', 'Merriweather', serif" }}>
+            <h1 className="text-4xl font-bold tracking-tight text-foreground" style={{ fontFamily: "'Georgia', 'Merriweather', serif" }}>
               Open Writer
             </h1>
-            <p className="text-sm text-muted-foreground mt-2">
-              A calm, focused writing studio
+            <p className="text-base text-muted-foreground mt-2 max-w-sm mx-auto">
+              Local-first, open-source writing studio with story intelligence
             </p>
+
+            {/* Feature badges */}
+            <div className="flex items-center justify-center gap-2 mt-5">
+              <Badge variant="outline" className="gap-1.5 text-xs border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30">
+                <WifiOff className="h-3 w-3" />
+                Offline
+              </Badge>
+              <Badge variant="outline" className="gap-1.5 text-xs border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30">
+                <Lock className="h-3 w-3" />
+                Private
+              </Badge>
+              <Badge variant="outline" className="gap-1.5 text-xs border-sky-300 dark:border-sky-700 text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/30">
+                <Shield className="h-3 w-3" />
+                Yours
+              </Badge>
+            </div>
           </motion.div>
 
           {/* Project List */}
-          <Card className="border-writer-border shadow-sm">
+          <Card className="border-writer-border shadow-md">
             <CardContent className="p-0">
               <ScrollArea className="max-h-80">
                 {loading ? (
@@ -138,13 +159,13 @@ export function ProjectPicker({ onProjectSelect }: ProjectPickerProps) {
                       <button
                         key={project.id}
                         onClick={() => handleSelect(project)}
-                        className="flex items-center gap-3 w-full p-4 text-left hover:bg-accent/30 transition-colors group"
+                        className="flex items-center gap-3 w-full p-4 text-left hover:bg-amber-50/50 dark:hover:bg-amber-950/10 transition-colors group"
                       >
-                        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-writer-accent-soft shrink-0">
-                          <BookOpen className="h-5 w-5 text-writer-accent" />
+                        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 shrink-0 group-hover:bg-amber-200 dark:group-hover:bg-amber-900/50 transition-colors">
+                          <BookOpen className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate group-hover:text-writer-accent transition-colors">
+                          <div className="font-semibold text-sm truncate group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors">
                             {project.name}
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
@@ -161,6 +182,9 @@ export function ProjectPicker({ onProjectSelect }: ProjectPickerProps) {
                             </span>
                           </div>
                         </div>
+                        <Badge variant="secondary" className="text-[10px] shrink-0">
+                          {new Date(project.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </Badge>
                       </button>
                     ))}
                   </div>
@@ -172,11 +196,18 @@ export function ProjectPicker({ onProjectSelect }: ProjectPickerProps) {
           {/* Create Button */}
           <Button
             onClick={() => setCreateOpen(true)}
-            className="w-full mt-4 gap-2 bg-writer-accent hover:bg-writer-accent/90 text-white"
+            className="w-full mt-4 gap-2 bg-amber-600 hover:bg-amber-700 text-white shadow-sm h-10 text-sm font-semibold"
           >
             <Plus className="h-4 w-4" />
             Create New Project
           </Button>
+
+          <Separator className="my-6" />
+
+          {/* Footer tagline */}
+          <p className="text-center text-xs text-muted-foreground">
+            Your words. Your data. Your rules.
+          </p>
         </div>
 
         {/* Create Project Dialog */}
@@ -206,7 +237,7 @@ export function ProjectPicker({ onProjectSelect }: ProjectPickerProps) {
               <Button
                 onClick={handleCreate}
                 disabled={!newName.trim()}
-                className="bg-writer-accent hover:bg-writer-accent/90 text-white"
+                className="bg-amber-600 hover:bg-amber-700 text-white"
               >
                 Create
               </Button>
