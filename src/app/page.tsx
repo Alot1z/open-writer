@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import { useWriterStore } from "@/store/writer-store"
+import { useDataStore } from "@/store/data-store"
 import { ProjectPicker } from "@/components/writer/project-picker"
 import { TopBar } from "@/components/writer/top-bar"
 import { LeftSidebar } from "@/components/writer/left-sidebar"
@@ -35,10 +36,30 @@ export default function Home() {
     setFocusMode,
   } = useWriterStore()
 
-  const [totalWordCount, setTotalWordCount] = useState(0)
+  const store = useDataStore()
+
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved")
-  const [chapterTitle, setChapterTitle] = useState("")
-  const [sceneTitle, setSceneTitle] = useState("")
+
+  // Seed demo data on mount if no projects exist
+  useEffect(() => {
+    if (store.projects.length === 0) {
+      store.seedDemoData()
+    }
+  }, [])
+
+  // Compute total word count from data store
+  const totalWordCount = currentProjectId
+    ? store.getProjectWordCount(currentProjectId)
+    : 0
+
+  // Get chapter/scene titles directly from data store
+  const chapterTitle = currentChapterId
+    ? (store.getChapter(currentChapterId)?.title || "")
+    : ""
+
+  const sceneTitle = currentSceneId
+    ? (store.getScene(currentSceneId)?.title || "")
+    : ""
 
   // Initialize automatic writing session tracking
   useWritingSession()
@@ -55,49 +76,6 @@ export default function Home() {
     document.addEventListener("keydown", handler)
     return () => document.removeEventListener("keydown", handler)
   }, [isFocusMode, setFocusMode])
-
-  // Fetch total word count for project
-  useEffect(() => {
-    if (!currentProjectId) return
-    const fetchTotal = async () => {
-      try {
-        const res = await fetch("/api/projects")
-        if (res.ok) {
-          const projects = await res.json()
-          const current = projects.find((p: { id: string }) => p.id === currentProjectId)
-          if (current) {
-            setTotalWordCount(current.totalWordCount || 0)
-          }
-        }
-      } catch {
-        // silently fail
-      }
-    }
-    fetchTotal()
-    const interval = setInterval(fetchTotal, 10000)
-    return () => clearInterval(interval)
-  }, [currentProjectId])
-
-  // Fetch chapter/scene titles for breadcrumbs
-  useEffect(() => {
-    if (!currentChapterId) return
-    let cancelled = false
-    fetch(`/api/chapters/${currentChapterId}`)
-      .then((res) => res.json())
-      .then((data) => { if (!cancelled) setChapterTitle(data.title || "") })
-      .catch(() => { if (!cancelled) setChapterTitle("") })
-    return () => { cancelled = true }
-  }, [currentChapterId])
-
-  useEffect(() => {
-    if (!currentSceneId) return
-    let cancelled = false
-    fetch(`/api/scenes/${currentSceneId}`)
-      .then((res) => res.json())
-      .then((data) => { if (!cancelled) setSceneTitle(data.title || "") })
-      .catch(() => { if (!cancelled) setSceneTitle("") })
-    return () => { cancelled = true }
-  }, [currentSceneId])
 
   // Show project picker when no project is selected
   if (!currentProjectId) {

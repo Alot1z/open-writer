@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useMemo, useState } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import {
   Dialog,
@@ -27,17 +27,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { History, Star, Plus, Clock, RotateCcw } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-
-interface Version {
-  id: string
-  sceneId: string | null
-  content: string
-  wordCount: number
-  label: string
-  isMilestone: boolean
-  isAutosave: boolean
-  createdAt: string
-}
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr)
@@ -61,76 +50,52 @@ function formatTime(dateStr: string): string {
 
 export function VersionsPanel() {
   const { currentProjectId, currentSceneId } = useWriterStore()
+  const store = useDataStore()
   const { toast } = useToast()
-  const [versions, setVersions] = useState<Version[]>([])
-  const [loading, setLoading] = useState(true)
-  const [previewVersion, setPreviewVersion] = useState<Version | null>(null)
+  const [previewVersion, setPreviewVersion] = useState<string | null>(null)
   const [restoring, setRestoring] = useState(false)
 
-  const fetchVersions = useCallback(async () => {
-    if (!currentProjectId) return
-    setLoading(true)
-    try {
-      let url = `/api/versions?projectId=${currentProjectId}`
-      if (currentSceneId) {
-        url += `&sceneId=${currentSceneId}`
-      }
-      const res = await fetch(url)
-      if (res.ok) {
-        const data = await res.json()
-        setVersions(data)
-      }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false)
-    }
-  }, [currentProjectId, currentSceneId])
+  // ─── Derived versions from store ─────────────
 
-  useEffect(() => {
-    fetchVersions()
-  }, [fetchVersions])
-
-  const handleCreateMilestone = async () => {
-    if (!currentProjectId) return
-    try {
-      const res = await fetch('/api/versions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId: currentProjectId,
-          sceneId: currentSceneId || null,
-          content: '',
-          label: 'Milestone',
-          isMilestone: true,
-          isAutosave: false,
-        }),
-      })
-      if (res.ok) {
-        const newVersion = await res.json()
-        setVersions((prev) => [newVersion, ...prev])
-        toast({ title: 'Milestone created', description: 'Version snapshot saved' })
-      }
-    } catch {
-      // silent
+  const versions = useMemo(() => {
+    if (!currentProjectId) return []
+    let result = store.getVersionsByProject(currentProjectId)
+    if (currentSceneId) {
+      result = result.filter(v => v.sceneId === currentSceneId)
     }
+    return result
+  }, [store, currentProjectId, currentSceneId])
+
+  // ─── Create milestone ─────────────────────────
+
+  const handleCreateMilestone = () => {
+    if (!currentProjectId) return
+    const sceneContent = currentSceneId
+      ? (store.getScene(currentSceneId)?.content || '')
+      : ''
+    const wordCount = currentSceneId
+      ? (store.getScene(currentSceneId)?.wordCount || 0)
+      : 0
+    store.addVersion({
+      projectId: currentProjectId,
+      sceneId: currentSceneId || '',
+      content: sceneContent,
+      label: 'Milestone',
+      wordCount,
+      isMilestone: true,
+      isAutosave: false,
+    })
+    toast({ title: 'Milestone created', description: 'Version snapshot saved' })
   }
 
-  const handleRestore = async (version: Version) => {
-    if (!version.sceneId || !version.content) return
+  // ─── Restore version ──────────────────────────
+
+  const handleRestore = (versionId: string, sceneId: string, content: string) => {
+    if (!sceneId || !content) return
     setRestoring(true)
     try {
-      const res = await fetch(`/api/scenes/${version.sceneId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: version.content }),
-      })
-      if (res.ok) {
-        toast({ title: 'Version restored', description: 'Scene content has been updated' })
-        await fetchVersions()
-      } else {
-        toast({ title: 'Restore failed', description: 'Could not update scene content', variant: 'destructive' })
-      }
+      store.updateScene(sceneId, { content })
+      toast({ title: 'Version restored', description: 'Scene content has been updated' })
     } catch {
       toast({ title: 'Restore failed', description: 'Could not update scene content', variant: 'destructive' })
     } finally {
@@ -139,7 +104,7 @@ export function VersionsPanel() {
   }
 
   // Group versions by date
-  const grouped: Record<string, Version[]> = {}
+  const grouped: Record<string, typeof versions> = {}
   for (const v of versions) {
     const date = formatDate(v.createdAt)
     if (!grouped[date]) grouped[date] = []
@@ -172,19 +137,7 @@ export function VersionsPanel() {
       </div>
 
       <ScrollArea className="flex-1">
-        {loading ? (
-          <div className="p-4 space-y-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-8 w-8 rounded" />
-                <div className="flex-1 space-y-1.5">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-3 w-16" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : versions.length === 0 ? (
+        {versions.length === 0 ? (
           <div className="p-6 text-center">
             <p className="text-sm text-stone-500 dark:text-stone-400">
               No versions yet. Start writing to create version history.
@@ -204,7 +157,7 @@ export function VersionsPanel() {
                     <Dialog key={version.id}>
                       <DialogTrigger asChild>
                         <button
-                          onClick={() => setPreviewVersion(version)}
+                          onClick={() => setPreviewVersion(version.id)}
                           className="w-full flex items-start gap-3 p-2.5 rounded-lg text-left transition-colors hover:bg-stone-100 dark:hover:bg-stone-800"
                         >
                           <div className="mt-0.5 shrink-0">
@@ -250,9 +203,9 @@ export function VersionsPanel() {
                           </div>
                           <Separator />
                           <div className="max-h-64 overflow-y-auto rounded-md bg-stone-50 dark:bg-stone-900 p-3">
-                            {previewVersion?.content ? (
+                            {version.content ? (
                               <p className="text-xs text-stone-700 dark:text-stone-300 whitespace-pre-wrap">
-                                {previewVersion.content}
+                                {version.content}
                               </p>
                             ) : (
                               <p className="text-xs text-stone-400 italic">No content snapshot available</p>
@@ -283,7 +236,7 @@ export function VersionsPanel() {
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                                     <AlertDialogAction
-                                      onClick={() => handleRestore(version)}
+                                      onClick={() => handleRestore(version.id, version.sceneId, version.content)}
                                       className="bg-amber-600 hover:bg-amber-700"
                                     >
                                       Restore

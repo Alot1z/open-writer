@@ -1,13 +1,12 @@
 'use client'
 
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Button } from '@/components/ui/button'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Zap,
-  ChevronUp,
-  ChevronDown,
   PenLine,
   Clock,
   Flame,
@@ -15,13 +14,6 @@ import {
   Focus,
   Minimize2,
 } from 'lucide-react'
-
-interface SessionData {
-  id: string
-  wordsWritten: number
-  duration: number
-  date: string
-}
 
 function formatDuration(seconds: number): string {
   if (seconds < 60) return `${seconds}s`
@@ -49,11 +41,9 @@ export function FlowWidget() {
     setSprintPanelOpen,
   } = useWriterStore()
 
+  const store = useDataStore()
   const [expanded, setExpanded] = useState(true)
-  const [todayWords, setTodayWords] = useState(0)
-  const [streak, setStreak] = useState(0)
   const [sessionDuration, setSessionDuration] = useState(0)
-  const [sessions, setSessions] = useState<SessionData[]>([])
 
   // Track session duration (time since page load for writing)
   useEffect(() => {
@@ -64,46 +54,29 @@ export function FlowWidget() {
     return () => clearInterval(interval)
   }, [])
 
-  // Fetch sessions data
-  const fetchSessions = useCallback(async () => {
-    if (!currentProjectId) return
-    try {
-      const res = await fetch(`/api/sessions?projectId=${currentProjectId}`)
-      if (res.ok) {
-        const data: SessionData[] = await res.json()
-        setSessions(data)
+  // Derive session data reactively from data store
+  const sessions = currentProjectId ? store.getSessionsByProject(currentProjectId) : []
 
-        // Calculate today's words
-        const today = new Date().toISOString().split('T')[0]
-        const todayTotal = data
-          .filter((s) => s.date === today)
-          .reduce((sum, s) => sum + s.wordsWritten, 0)
-        setTodayWords(todayTotal)
+  const todayWords = (() => {
+    const today = new Date().toISOString().split('T')[0]
+    return sessions
+      .filter((s) => s.date === today)
+      .reduce((sum, s) => sum + s.wordsWritten, 0)
+  })()
 
-        // Calculate streak
-        const sessionDates = new Set(data.map((s) => s.date))
-        const todayDate = new Date()
-        todayDate.setHours(0, 0, 0, 0)
-        let currentStreak = 0
-        let checkDate = new Date(todayDate)
+  const streak = (() => {
+    const sessionDates = new Set(sessions.map((s) => s.date))
+    const todayDate = new Date()
+    todayDate.setHours(0, 0, 0, 0)
+    let currentStreak = 0
+    let checkDate = new Date(todayDate)
 
-        while (sessionDates.has(checkDate.toISOString().split('T')[0])) {
-          currentStreak++
-          checkDate.setDate(checkDate.getDate() - 1)
-        }
-        setStreak(currentStreak)
-      }
-    } catch {
-      // silent
+    while (sessionDates.has(checkDate.toISOString().split('T')[0])) {
+      currentStreak++
+      checkDate.setDate(checkDate.getDate() - 1)
     }
-  }, [currentProjectId])
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchSessions()
-    const interval = setInterval(fetchSessions, 60000) // Refresh every minute
-    return () => clearInterval(interval)
-  }, [fetchSessions])
+    return currentStreak
+  })()
 
   // Don't show in focus mode (it would obstruct)
   if (isFocusMode) return null

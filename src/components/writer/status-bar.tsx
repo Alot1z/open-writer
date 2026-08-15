@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { cn } from '@/lib/utils'
 
 interface StatusBarProps {
@@ -21,29 +22,11 @@ export function StatusBar({ saveStatus = 'saved', totalWordCount = 0, className 
     isTypewriterMode,
   } = useWriterStore()
 
-  const [chapterTitle, setChapterTitle] = useState<string>('')
-  const [sceneTitle, setSceneTitle] = useState<string>('')
+  const store = useDataStore()
 
-  // Fetch titles for breadcrumb
-  useEffect(() => {
-    if (!currentChapterId) return
-    let cancelled = false
-    fetch(`/api/chapters/${currentChapterId}`)
-      .then((res) => res.json())
-      .then((data) => { if (!cancelled) setChapterTitle(data.title || '') })
-      .catch(() => { if (!cancelled) setChapterTitle('') })
-    return () => { cancelled = true }
-  }, [currentChapterId])
-
-  useEffect(() => {
-    if (!currentSceneId) return
-    let cancelled = false
-    fetch(`/api/scenes/${currentSceneId}`)
-      .then((res) => res.json())
-      .then((data) => { if (!cancelled) setSceneTitle(data.title || '') })
-      .catch(() => { if (!cancelled) setSceneTitle('') })
-    return () => { cancelled = true }
-  }, [currentSceneId])
+  // Derive titles directly from data store — reactive, no fetch needed
+  const chapterTitle = currentChapterId ? (store.getChapter(currentChapterId)?.title ?? '') : ''
+  const sceneTitle = currentSceneId ? (store.getScene(currentSceneId)?.title ?? '') : ''
 
   const statusColors = {
     saved: 'text-emerald-600 dark:text-emerald-400',

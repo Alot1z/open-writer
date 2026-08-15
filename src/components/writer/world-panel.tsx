@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useState, useMemo } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   Collapsible,
   CollapsibleContent,
@@ -30,14 +30,6 @@ import {
 } from '@/components/ui/dialog'
 import { Plus, Search, Globe, ChevronRight, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-interface WorldElement {
-  id: string
-  name: string
-  category: string
-  description: string
-  tags: string
-}
 
 const CATEGORIES = [
   { value: 'faction', label: 'Factions' },
@@ -67,56 +59,39 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export function WorldPanel() {
   const { currentProjectId, setRightPanel, setSelectedWorld, selectedWorldId } = useWriterStore()
-  const [elements, setElements] = useState<WorldElement[]>([])
-  const [loading, setLoading] = useState(true)
+  const store = useDataStore()
   const [search, setSearch] = useState('')
   const [openCategories, setOpenCategories] = useState<Set<string>>(new Set())
   const [newCategory, setNewCategory] = useState('faction')
 
-  const fetchElements = useCallback(async () => {
-    if (!currentProjectId) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/world?projectId=${currentProjectId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setElements(data)
-        // Auto-open categories that have elements
-        const cats = new Set(data.map((e: WorldElement) => e.category).filter(Boolean))
-        setOpenCategories(cats)
-      }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false)
-    }
-  }, [currentProjectId])
+  const elements = currentProjectId ? store.getWorldByProject(currentProjectId) : []
 
-  useEffect(() => {
-    fetchElements()
-  }, [fetchElements])
+  // Auto-open categories that have elements (computed once from data)
+  const autoOpenCategories = useMemo(() => {
+    const cats = new Set(elements.map((e) => e.category).filter(Boolean))
+    return cats
+  }, [elements])
 
-  const handleAdd = async () => {
-    if (!currentProjectId) return
-    try {
-      const res = await fetch('/api/world', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId: currentProjectId,
-          name: 'New Element',
-          category: newCategory,
-        }),
-      })
-      if (res.ok) {
-        const newEl = await res.json()
-        setElements((prev) => [...prev, newEl])
-        setSelectedWorld(newEl.id)
-        setRightPanel('world-detail', newEl.id)
-      }
-    } catch {
-      // silent
+  // Merge auto-opened with manually toggled
+  const effectiveOpenCategories = useMemo(() => {
+    // If user hasn't manually toggled, use auto-opened
+    if (openCategories.size === 0 && autoOpenCategories.size > 0) {
+      return autoOpenCategories
     }
+    return openCategories
+  }, [openCategories, autoOpenCategories])
+
+  const handleAdd = () => {
+    if (!currentProjectId) return
+    const newEl = store.addWorldElement({
+      projectId: currentProjectId,
+      name: 'New Element',
+      category: newCategory,
+      description: '',
+      rules: '',
+    })
+    setSelectedWorld(newEl.id)
+    setRightPanel('world-detail', newEl.id)
   }
 
   const handleClick = (id: string) => {
@@ -134,7 +109,7 @@ export function WorldPanel() {
   }
 
   // Group elements by category
-  const grouped: Record<string, WorldElement[]> = {}
+  const grouped: Record<string, typeof elements> = {}
   const filtered = elements.filter((e) =>
     e.name.toLowerCase().includes(search.toLowerCase())
   )
@@ -204,19 +179,7 @@ export function WorldPanel() {
       </div>
 
       <ScrollArea className="flex-1">
-        {loading ? (
-          <div className="p-4 space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-8 w-8 rounded" />
-                <div className="flex-1 space-y-1.5">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-3 w-16" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : elements.length === 0 ? (
+        {elements.length === 0 ? (
           <div className="p-6 text-center">
             <p className="text-sm text-stone-500 dark:text-stone-400">
               No world elements yet. Create one to build your world.
@@ -227,7 +190,7 @@ export function WorldPanel() {
             {displayCategories.map((cat) => {
               const catElements = grouped[cat] || []
               const catLabel = CATEGORIES.find((c) => c.value === cat)?.label || cat
-              const isOpen = openCategories.has(cat)
+              const isOpen = effectiveOpenCategories.has(cat)
 
               return (
                 <Collapsible

@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -26,71 +27,61 @@ import {
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-interface ProjectInfo {
-  id: string
-  name: string
-  description: string
-  genre: string
-  updatedAt: string
-  _count: { chapters: number; characters: number }
-  totalWordCount: number
-}
-
 interface ProjectPickerProps {
   onProjectSelect?: (id: string, name: string) => void
 }
 
 export function ProjectPicker({ onProjectSelect }: ProjectPickerProps) {
   const { setCurrentProject } = useWriterStore()
-  const [projects, setProjects] = useState<ProjectInfo[]>([])
-  const [loading, setLoading] = useState(true)
+  const store = useDataStore()
+
   const [createOpen, setCreateOpen] = useState(false)
   const [newName, setNewName] = useState('')
   const [newGenre, setNewGenre] = useState('')
 
-  const fetchProjects = async () => {
-    try {
-      setLoading(true)
-      const res = await fetch('/api/projects')
-      if (res.ok) {
-        const data = await res.json()
-        setProjects(data)
-      }
-    } catch (err) {
-      console.error('Failed to fetch projects:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  // Seed demo data on mount if no projects exist
   useEffect(() => {
-    fetchProjects()
+    if (store.projects.length === 0) {
+      store.seedDemoData()
+    }
   }, [])
 
-  const handleSelect = (project: ProjectInfo) => {
+  // Derive project list with computed fields from the data store
+  const projects = useMemo(() => {
+    return store.projects.map(p => {
+      const chapters = store.getChaptersByProject(p.id)
+      const wordCount = store.getProjectWordCount(p.id)
+      return {
+        id: p.id,
+        name: p.name,
+        genre: p.genre,
+        description: p.description,
+        updatedAt: p.updatedAt,
+        chapterCount: chapters.length,
+        totalWordCount: wordCount,
+      }
+    })
+  }, [store])
+
+  const handleSelect = (project: { id: string; name: string }) => {
     setCurrentProject(project.id, project.name)
     onProjectSelect?.(project.id, project.name)
   }
 
-  const handleCreate = async () => {
+  const handleCreate = () => {
     if (!newName.trim()) return
-    try {
-      const res = await fetch('/api/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newName.trim(),
-          genre: newGenre.trim(),
-        }),
-      })
-      if (res.ok) {
-        const project = await res.json()
-        setCurrentProject(project.id, project.name)
-        onProjectSelect?.(project.id, project.name)
-      }
-    } catch (err) {
-      console.error('Failed to create project:', err)
-    }
+    const project = store.addProject({
+      name: newName.trim(),
+      genre: newGenre.trim(),
+    })
+    // Auto-create first chapter and scene
+    const chapter = store.addChapter({ projectId: project.id, title: 'Chapter 1', order: 0 })
+    store.addScene({ projectId: project.id, chapterId: chapter.id, title: 'Scene 1', content: '', order: 0, wordCount: 0 })
+    setCurrentProject(project.id, project.name)
+    onProjectSelect?.(project.id, project.name)
+    setCreateOpen(false)
+    setNewName('')
+    setNewGenre('')
   }
 
   return (
@@ -142,13 +133,7 @@ export function ProjectPicker({ onProjectSelect }: ProjectPickerProps) {
           <Card className="border-writer-border shadow-md">
             <CardContent className="p-0">
               <ScrollArea className="max-h-80">
-                {loading ? (
-                  <div className="p-6 space-y-3">
-                    {Array.from({ length: 2 }).map((_, i) => (
-                      <div key={i} className="h-14 bg-muted/30 rounded animate-pulse" />
-                    ))}
-                  </div>
-                ) : projects.length === 0 ? (
+                {projects.length === 0 ? (
                   <div className="p-8 text-center text-sm text-muted-foreground">
                     <FolderOpen className="h-8 w-8 mx-auto mb-3 opacity-40" />
                     No projects yet. Create your first one!
@@ -175,7 +160,7 @@ export function ProjectPicker({ onProjectSelect }: ProjectPickerProps) {
                               </Badge>
                             )}
                             <span className="text-[11px] text-muted-foreground">
-                              {project._count.chapters} chapter{project._count.chapters !== 1 ? 's' : ''}
+                              {project.chapterCount} chapter{project.chapterCount !== 1 ? 's' : ''}
                             </span>
                             <span className="text-[11px] text-muted-foreground">
                               {project.totalWordCount.toLocaleString()} words

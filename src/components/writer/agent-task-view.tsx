@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useState, useCallback } from 'react'
+import { useMemo } from 'react'
+import { useDataStore } from '@/store/data-store'
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { Skeleton } from "@/components/ui/skeleton"
 import {
   Loader2,
   Check,
@@ -19,7 +19,8 @@ import {
   ChevronRight,
 } from "lucide-react"
 
-export interface AgentTask {
+// Local UI interface for AgentTask with all fields the UI expects
+interface AgentTaskUI {
   id: string
   goal: string
   status: "pending" | "planning" | "running" | "completed" | "failed"
@@ -40,7 +41,7 @@ interface AgentTaskViewProps {
 }
 
 const STATUS_CONFIG: Record<
-  AgentTask["status"],
+  AgentTaskUI["status"],
   { icon: typeof Clock; label: string; variant: "default" | "secondary" | "destructive" | "outline"; color: string }
 > = {
   pending: { icon: Clock, label: "Pending", variant: "outline", color: "text-muted-foreground" },
@@ -51,44 +52,29 @@ const STATUS_CONFIG: Record<
 }
 
 export function AgentTaskView({ taskId }: AgentTaskViewProps) {
-  const [task, setTask] = useState<AgentTask | null>(null)
-  const [loading, setLoading] = useState(true)
+  const store = useDataStore()
 
-  const fetchTask = useCallback(async () => {
-    if (!taskId) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/agent-tasks/${taskId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setTask(data)
-      }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false)
+  // Derive task reactively from data store
+  const task = useMemo<AgentTaskUI | null>(() => {
+    const raw = store.agentTasks.find(t => t.id === taskId)
+    if (!raw) return null
+    // Map store AgentTask to UI AgentTaskUI with defaults for missing fields
+    return {
+      id: raw.id,
+      goal: raw.intent,
+      status: raw.status === 'pending' ? 'pending' : raw.status === 'running' ? 'running' : raw.status === 'completed' ? 'completed' : 'failed',
+      plan: [],
+      currentStep: 0,
+      permission: 'ask',
+      toolCalls: [],
+      observations: [],
+      errors: [],
+      artifacts: [],
+      result: raw.result,
+      createdAt: raw.createdAt,
+      updatedAt: raw.updatedAt,
     }
-  }, [taskId])
-
-  useEffect(() => {
-    fetchTask()
-  }, [fetchTask])
-
-  if (loading) {
-    return (
-      <div className="p-4 space-y-4">
-        <Skeleton className="h-6 w-40" />
-        <Skeleton className="h-4 w-24" />
-        <Separator />
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="space-y-2">
-            <Skeleton className="h-3 w-16" />
-            <Skeleton className="h-8 w-full" />
-          </div>
-        ))}
-      </div>
-    )
-  }
+  }, [taskId, store.agentTasks])
 
   if (!task) {
     return (

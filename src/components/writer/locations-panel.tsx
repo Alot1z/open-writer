@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useState } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select,
   SelectContent,
@@ -15,15 +15,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Plus, Search, MapPin } from 'lucide-react'
-
-interface Location {
-  id: string
-  name: string
-  type: string
-  description: string
-  atmosphere: string
-  tags: string
-}
 
 const TYPE_OPTIONS = [
   { value: 'all', label: 'All Types' },
@@ -52,52 +43,21 @@ const TYPE_COLORS: Record<string, string> = {
 
 export function LocationsPanel() {
   const { currentProjectId, setRightPanel, setSelectedLocation, selectedLocationId } = useWriterStore()
-  const [locations, setLocations] = useState<Location[]>([])
-  const [loading, setLoading] = useState(true)
+  const store = useDataStore()
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
 
-  const fetchLocations = useCallback(async () => {
-    if (!currentProjectId) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/locations?projectId=${currentProjectId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setLocations(data)
-      }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false)
-    }
-  }, [currentProjectId])
+  const locations = currentProjectId ? store.getLocationsByProject(currentProjectId) : []
 
-  useEffect(() => {
-    fetchLocations()
-  }, [fetchLocations])
-
-  const handleAdd = async () => {
+  const handleAdd = () => {
     if (!currentProjectId) return
-    try {
-      const res = await fetch('/api/locations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId: currentProjectId,
-          name: 'New Location',
-          type: 'other',
-        }),
-      })
-      if (res.ok) {
-        const newLoc = await res.json()
-        setLocations((prev) => [...prev, newLoc])
-        setSelectedLocation(newLoc.id)
-        setRightPanel('location-detail', newLoc.id)
-      }
-    } catch {
-      // silent
-    }
+    const newLoc = store.addLocation({
+      projectId: currentProjectId,
+      name: 'New Location',
+      type: 'other',
+    })
+    setSelectedLocation(newLoc.id)
+    setRightPanel('location-detail', newLoc.id)
   }
 
   const handleClick = (id: string) => {
@@ -148,19 +108,7 @@ export function LocationsPanel() {
       </div>
 
       <ScrollArea className="flex-1">
-        {loading ? (
-          <div className="p-4 space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-8 w-8 rounded" />
-                <div className="flex-1 space-y-1.5">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-3 w-16" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="p-6 text-center">
             <p className="text-sm text-stone-500 dark:text-stone-400">
               {locations.length === 0

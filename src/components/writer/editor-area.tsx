@@ -2,16 +2,10 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { RichTextEditor } from './rich-text-editor'
 import { motion } from 'framer-motion'
-import { PenLine, FileText } from 'lucide-react'
-
-interface SceneData {
-  id: string
-  title: string
-  content: string
-  wordCount: number
-}
+import { PenLine } from 'lucide-react'
 
 interface EditorAreaProps {
   className?: string
@@ -26,39 +20,24 @@ export function EditorArea({ className }: EditorAreaProps) {
     setEditorStats,
   } = useWriterStore()
 
-  const [sceneData, setSceneData] = useState<SceneData | null>(null)
-  const [loading, setLoading] = useState(false)
+  const store = useDataStore()
+
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
-  const lastSavedContent = useRef<string>('')
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Fetch scene data when scene changes
-  useEffect(() => {
-    if (!currentSceneId) {
-      setSceneData(null)
-      return
-    }
+  // Get scene data directly from the data store
+  const sceneData = currentSceneId ? store.getScene(currentSceneId) : null
 
-    const fetchScene = async () => {
-      try {
-        setLoading(true)
-        const res = await fetch(`/api/scenes/${currentSceneId}`)
-        if (res.ok) {
-          const data = await res.json()
-          setSceneData(data)
-          lastSavedContent.current = data.content
-          setSaveStatus('saved')
-          setEditorStats(data.wordCount, data.content?.length || 0)
-        }
-      } catch (err) {
-        console.error('Failed to fetch scene:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
+  // Reset save status when scene changes
+  const [prevSceneId, setPrevSceneId] = useState<string | null>(null)
+  if (currentSceneId !== prevSceneId) {
+    setPrevSceneId(currentSceneId)
+    setSaveStatus('saved')
+  }
 
-    fetchScene()
-  }, [currentSceneId, setEditorStats])
+  // Update editor stats when scene data is available
+  const wordCount = sceneData?.wordCount ?? 0
+  const charCount = sceneData?.content?.length ?? 0
 
   // Cleanup autosave timer
   useEffect(() => {
@@ -72,33 +51,23 @@ export function EditorArea({ className }: EditorAreaProps) {
     (html: string) => {
       if (!currentSceneId) return
 
-      // Update local state immediately
-      setSceneData((prev) => prev ? { ...prev, content: html } : null)
       setSaveStatus('unsaved')
 
       // Clear previous timer
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
 
       // Debounced autosave (1.5 seconds)
-      autosaveTimer.current = setTimeout(async () => {
-        try {
-          setSaveStatus('saving')
-          const res = await fetch(`/api/scenes/${currentSceneId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: html }),
-          })
-          if (res.ok) {
-            lastSavedContent.current = html
-            setSaveStatus('saved')
-          }
-        } catch (err) {
-          console.error('Failed to autosave:', err)
-          setSaveStatus('unsaved')
-        }
+      autosaveTimer.current = setTimeout(() => {
+        setSaveStatus('saving')
+        // Compute word count from HTML content
+        const text = html.replace(/<[^>]*>/g, '').trim()
+        const wc = text ? text.split(/\s+/).length : 0
+        // Save to data store
+        store.updateScene(currentSceneId, { content: html, wordCount: wc })
+        setSaveStatus('saved')
       }, 1500)
     },
-    [currentSceneId]
+    [currentSceneId, store]
   )
 
   // Word count change handler
@@ -108,6 +77,13 @@ export function EditorArea({ className }: EditorAreaProps) {
     },
     [setEditorStats]
   )
+
+  // Update editor stats from scene data
+  useEffect(() => {
+    if (sceneData) {
+      setEditorStats(wordCount, charCount)
+    }
+  }, [wordCount, charCount, sceneData, setEditorStats])
 
   // Focus mode wrapper
   if (isFocusMode) {
@@ -171,21 +147,6 @@ export function EditorArea({ className }: EditorAreaProps) {
                 : 'Select a chapter and scene from the sidebar to start writing.'}
             </p>
           </motion.div>
-        </div>
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className={className}>
-        <div className="flex items-center justify-center h-full bg-writer-bg">
-          <div className="animate-pulse space-y-3 max-w-3xl w-full px-8">
-            <div className="h-6 bg-muted/30 rounded w-1/3" />
-            <div className="h-4 bg-muted/30 rounded w-full" />
-            <div className="h-4 bg-muted/30 rounded w-5/6" />
-            <div className="h-4 bg-muted/30 rounded w-4/5" />
-          </div>
         </div>
       </div>
     )

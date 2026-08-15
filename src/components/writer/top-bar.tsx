@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -46,25 +47,18 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
     setLeftPanel,
   } = useWriterStore()
 
+  const store = useDataStore()
   const { theme, setTheme } = useTheme()
   const [isEditingName, setIsEditingName] = useState(false)
   const [nameValue, setNameValue] = useState(currentProjectName)
 
-  const handleNameSave = async () => {
+  const handleNameSave = () => {
     if (!currentProjectId || !nameValue.trim()) {
       setNameValue(currentProjectName)
       setIsEditingName(false)
       return
     }
-    try {
-      await fetch(`/api/projects/${currentProjectId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: nameValue.trim() }),
-      })
-    } catch (err) {
-      console.error('Failed to rename project:', err)
-    }
+    store.updateProject(currentProjectId, { name: nameValue.trim() })
     setIsEditingName(false)
   }
 

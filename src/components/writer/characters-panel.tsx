@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useState } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select,
   SelectContent,
@@ -15,16 +15,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Plus, Search, Users } from 'lucide-react'
-
-interface Character {
-  id: string
-  name: string
-  role: string
-  description: string
-  age: string
-  occupation: string
-  tags: string
-}
 
 const ROLE_OPTIONS = [
   { value: 'all', label: 'All Roles' },
@@ -43,52 +33,21 @@ const ROLE_COLORS: Record<string, string> = {
 
 export function CharactersPanel() {
   const { currentProjectId, setRightPanel, setSelectedCharacter, selectedCharacterId } = useWriterStore()
-  const [characters, setCharacters] = useState<Character[]>([])
-  const [loading, setLoading] = useState(true)
+  const store = useDataStore()
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
 
-  const fetchCharacters = useCallback(async () => {
-    if (!currentProjectId) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/characters?projectId=${currentProjectId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setCharacters(data)
-      }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false)
-    }
-  }, [currentProjectId])
+  const characters = currentProjectId ? store.getCharactersByProject(currentProjectId) : []
 
-  useEffect(() => {
-    fetchCharacters()
-  }, [fetchCharacters])
-
-  const handleAdd = async () => {
+  const handleAdd = () => {
     if (!currentProjectId) return
-    try {
-      const res = await fetch('/api/characters', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId: currentProjectId,
-          name: 'New Character',
-          role: 'supporting',
-        }),
-      })
-      if (res.ok) {
-        const newChar = await res.json()
-        setCharacters((prev) => [...prev, newChar])
-        setSelectedCharacter(newChar.id)
-        setRightPanel('character-detail', newChar.id)
-      }
-    } catch {
-      // silent
-    }
+    const newChar = store.addCharacter({
+      projectId: currentProjectId,
+      name: 'New Character',
+      role: 'supporting',
+    })
+    setSelectedCharacter(newChar.id)
+    setRightPanel('character-detail', newChar.id)
   }
 
   const handleClick = (id: string) => {
@@ -139,19 +98,7 @@ export function CharactersPanel() {
       </div>
 
       <ScrollArea className="flex-1">
-        {loading ? (
-          <div className="p-4 space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-8 w-8 rounded-full" />
-                <div className="flex-1 space-y-1.5">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-3 w-16" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="p-6 text-center">
             <p className="text-sm text-stone-500 dark:text-stone-400">
               {characters.length === 0
@@ -187,8 +134,8 @@ export function CharactersPanel() {
                         {char.role}
                       </Badge>
                     )}
-                    {char.occupation && (
-                      <span className="text-[10px] text-stone-400 truncate">{char.occupation}</span>
+                    {char.description && (
+                      <span className="text-[10px] text-stone-400 truncate">{char.description.slice(0, 30)}</span>
                     )}
                   </div>
                 </div>

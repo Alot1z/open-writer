@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useWriterStore } from "@/store/writer-store"
+import { useSearch } from "@/lib/api-client"
 import {
   Dialog,
   DialogContent,
@@ -21,7 +22,6 @@ import {
   Globe,
   Clock,
   Search,
-  Loader2,
 } from "lucide-react"
 
 interface SearchResult {
@@ -61,22 +61,24 @@ const TYPE_CONFIG: Record<
   },
 }
 
+const EMPTY_RESULTS: GroupedResults = {
+  scenes: [],
+  characters: [],
+  locations: [],
+  objects: [],
+  notes: [],
+  worldElements: [],
+}
+
 export function GlobalSearch() {
   const { isSearchOpen, setSearchOpen, searchQuery, setSearchQuery, currentProjectId } =
     useWriterStore()
+  const searchHelper = useSearch()
 
-  const [results, setResults] = useState<GroupedResults>({
-    scenes: [],
-    characters: [],
-    locations: [],
-    objects: [],
-    notes: [],
-    worldElements: [],
-  })
-  const [isSearching, setIsSearching] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const [debouncedQuery, setDebouncedQuery] = useState(searchQuery)
   const inputRef = useRef<HTMLInputElement>(null)
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (isSearchOpen) {
@@ -95,84 +97,56 @@ export function GlobalSearch() {
     return () => document.removeEventListener("keydown", handleKeyDown)
   }, [isSearchOpen, setSearchOpen])
 
-  const performSearch = useCallback(
-    async (query: string) => {
-      if (!query.trim() || !currentProjectId) {
-        setResults({
-          scenes: [],
-          characters: [],
-          locations: [],
-          objects: [],
-          notes: [],
-          worldElements: [],
-        })
-        return
-      }
-
-      setIsSearching(true)
-      try {
-        const res = await fetch(
-          `/api/search?q=${encodeURIComponent(query.trim())}&projectId=${currentProjectId}`
-        )
-        if (res.ok) {
-          const data = await res.json()
-          setResults({
-            scenes: (data.scenes || []).map((s: Record<string, unknown>) => ({
-              id: s.id as string,
-              name: (s.title || "Untitled Scene") as string,
-              description: s.notes ? (s.notes as string).slice(0, 100) : undefined,
-              type: "scenes",
-            })),
-            characters: (data.characters || []).map((c: Record<string, unknown>) => ({
-              id: c.id as string,
-              name: (c.name || "Unknown") as string,
-              description: c.role ? (c.role as string).slice(0, 100) : undefined,
-              type: "characters",
-            })),
-            locations: (data.locations || []).map((l: Record<string, unknown>) => ({
-              id: l.id as string,
-              name: (l.name || "Unknown") as string,
-              description: l.type ? (l.type as string).slice(0, 100) : undefined,
-              type: "locations",
-            })),
-            objects: (data.storyObjects || []).map((o: Record<string, unknown>) => ({
-              id: o.id as string,
-              name: (o.name || "Unknown") as string,
-              description: o.type ? (o.type as string).slice(0, 100) : undefined,
-              type: "objects",
-            })),
-            notes: (data.notes || []).map((n: Record<string, unknown>) => ({
-              id: n.id as string,
-              name: (n.title || "Untitled Note") as string,
-              description: n.category as string | undefined,
-              type: "notes",
-            })),
-            worldElements: (data.worldElements || []).map((w: Record<string, unknown>) => ({
-              id: w.id as string,
-              name: (w.name || "Unknown") as string,
-              description: w.category as string | undefined,
-              type: "worldElements",
-            })),
-          })
-        }
-      } catch (error) {
-        console.error("Search failed:", error)
-      } finally {
-        setIsSearching(false)
-      }
-    },
-    [currentProjectId]
-  )
-
+  // Debounce search query
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
-      performSearch(searchQuery)
+      setDebouncedQuery(searchQuery)
     }, 300)
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [searchQuery, performSearch])
+  }, [searchQuery])
+
+  // Perform search reactively via data store
+  const results = useMemo<GroupedResults>(() => {
+    if (!debouncedQuery.trim() || !currentProjectId) return EMPTY_RESULTS
+
+    const raw = searchHelper.search(debouncedQuery, currentProjectId)
+
+    const grouped: GroupedResults = {
+      scenes: [],
+      characters: [],
+      locations: [],
+      objects: [],
+      notes: [],
+      worldElements: [],
+    }
+
+    for (const r of raw) {
+      const item: SearchResult = {
+        id: r.id,
+        name: r.title,
+        description: r.preview || undefined,
+        type: r.type,
+      }
+      if (r.type === 'scene' || r.type === 'chapter') {
+        grouped.scenes.push(item)
+      } else if (r.type === 'character') {
+        grouped.characters.push(item)
+      } else if (r.type === 'location') {
+        grouped.locations.push(item)
+      } else if (r.type === 'object' || r.type === 'storyObject') {
+        grouped.objects.push(item)
+      } else if (r.type === 'note') {
+        grouped.notes.push(item)
+      } else if (r.type === 'world') {
+        grouped.worldElements.push(item)
+      }
+    }
+
+    return grouped
+  }, [debouncedQuery, currentProjectId, searchHelper])
 
   const allResults = Object.entries(results).flatMap(([, items]) => items)
   const totalResults = allResults.length
@@ -232,12 +206,9 @@ export function GlobalSearch() {
             placeholder="Search scenes, characters, locations, notes..."
             className="border-none focus-visible:ring-0 h-10 text-sm"
           />
-          {isSearching && (
-            <Loader2 className="size-4 animate-spin text-muted-foreground ml-2" />
-          )}
         </div>
         <ScrollArea className="max-h-[400px]">
-          {searchQuery && !isSearching && totalResults === 0 && (
+          {searchQuery && totalResults === 0 && (
             <div className="p-6 text-center text-sm text-muted-foreground">
               No results found for &ldquo;{searchQuery}&rdquo;
             </div>

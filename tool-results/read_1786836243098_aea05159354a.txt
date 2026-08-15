@@ -1,0 +1,973 @@
+     1→     1→'use client'
+     2→     2→
+     3→     3→import { create } from 'zustand'
+     4→     4→import { persist } from 'zustand/middleware'
+     5→     5→
+     6→     6→// ─── Entity Types ───────────────────────────────────────────
+     7→     7→
+     8→     8→export interface Project {
+     9→     9→  id: string
+    10→    10→  name: string
+    11→    11→  genre: string
+    12→    12→  description: string
+    13→    13→  updatedAt: string
+    14→    14→  createdAt: string
+    15→    15→  totalWordCount: number
+    16→    16→  chapters: { id: string }[]
+    17→    17→  characters: { id: string }[]
+    18→    18→}
+    19→    19→
+    20→    20→export interface Chapter {
+    21→    21→  id: string
+    22→    22→  projectId: string
+    23→    23→  title: string
+    24→    24→  order: number
+    25→    25→  createdAt: string
+    26→    26→  updatedAt: string
+    27→    27→}
+    28→    28→
+    29→    29→export interface Scene {
+    30→    30→  id: string
+    31→    31→  chapterId: string
+    32→    32→  projectId: string
+    33→    33→  title: string
+    34→    34→  content: string
+    35→    35→  order: number
+    36→    36→  wordCount: number
+    37→    37→  createdAt: string
+    38→    38→  updatedAt: string
+    39→    39→}
+    40→    40→
+    41→    41→export interface Character {
+    42→    42→  id: string
+    43→    43→  projectId: string
+    44→    44→  name: string
+    45→    45→  role: string
+    46→    46→  description: string
+    47→    47→  motivation: string
+    48→    48→  backstory: string
+    49→    49→  age: string
+    50→    50→  occupation: string
+    51→    51→  personality: string
+    52→    52→  appearance: string
+    53→    53→  goals: string
+    54→    54→  fears: string
+    55→    55→  tags: string
+    56→    56→  createdAt: string
+    57→    57→  updatedAt: string
+    58→    58→}
+    59→    59→
+    60→    60→export interface Location {
+    61→    61→  id: string
+    62→    62→  projectId: string
+    63→    63→  name: string
+    64→    64→  type: string
+    65→    65→  description: string
+    66→    66→  atmosphere: string
+    67→    67→  history: string
+    68→    68→  features: string
+    69→    69→  parentLocationId: string
+    70→    70→  tags: string
+    71→    71→  createdAt: string
+    72→    72→  updatedAt: string
+    73→    73→}
+    74→    74→
+    75→    75→export interface Note {
+    76→    76→  id: string
+    77→    77→  projectId: string
+    78→    78→  title: string
+    79→    79→  content: string
+    80→    80→  category: string
+    81→    81→  linkedType: string
+    82→    82→  linkedId: string
+    83→    83→  priority: number
+    84→    84→  resolved: boolean
+    85→    85→  tags: string
+    86→    86→  createdAt: string
+    87→    87→  updatedAt: string
+    88→    88→}
+    89→    89→
+    90→    90→export interface TimelineEvent {
+    91→    91→  id: string
+    92→    92→  projectId: string
+    93→    93→  title: string
+    94→    94→  description: string
+    95→    95→  date: string
+    96→    96→  chapterId: string | null
+    97→    97→  time: string
+    98→    98→  duration: string
+    99→    99→  location: string
+   100→   100→  characters: string
+   101→   101→  objects: string
+   102→   102→  cause: string
+   103→   103→  consequence: string
+   104→   104→  eventType: string
+   105→   105→  tags: string
+   106→   106→  createdAt: string
+   107→   107→  updatedAt: string
+   108→   108→}
+   109→   109→
+   110→   110→export interface WorldElement {
+   111→   111→  id: string
+   112→   112→  projectId: string
+   113→   113→  name: string
+   114→   114→  category: string
+   115→   115→  description: string
+   116→   116→  parent: string
+   117→   117→  rules: string
+   118→   118→  history: string
+   119→   119→  tags: string
+   120→   120→  createdAt: string
+   121→   121→  updatedAt: string
+   122→   122→}
+   123→   123→
+   124→   124→export interface StoryObject {
+   125→   125→  id: string
+   126→   126→  projectId: string
+   127→   127→  name: string
+   128→   128→  type: string
+   129→   129→  description: string
+   130→   130→  owner: string
+   131→   131→  location: string
+   132→   132→  history: string
+   133→   133→  appearance: string
+   134→   134→  significance: string
+   135→   135→  tags: string
+   136→   136→  createdAt: string
+   137→   137→  updatedAt: string
+   138→   138→}
+   139→   139→
+   140→   140→export interface Goal {
+   141→   141→  id: string
+   142→   142→  projectId: string
+   143→   143→  type: string
+   144→   144→  target: number
+   145→   145→  current: number
+   146→   146→  deadline: string | null
+   147→   147→  label: string
+   148→   148→  createdAt: string
+   149→   149→  updatedAt: string
+   150→   150→}
+   151→   151→
+   152→   152→export interface Comment {
+   153→   153→  id: string
+   154→   154→  projectId: string
+   155→   155→  sceneId: string | null
+   156→   156→  chapterId: string | null
+   157→   157→  text: string
+   158→   158→  resolved: boolean
+   159→   159→  createdAt: string
+   160→   160→  updatedAt: string
+   161→   161→}
+   162→   162→
+   163→   163→export interface Version {
+   164→   164→  id: string
+   165→   165→  projectId: string
+   166→   166→  sceneId: string
+   167→   167→  content: string
+   168→   168→  label: string
+   169→   169→  wordCount: number
+   170→   170→  createdAt: string
+   171→   171→}
+   172→   172→
+   173→   173→export interface WritingSession {
+   174→   174→  id: string
+   175→   175→  projectId: string
+   176→   176→  wordsWritten: number
+   177→   177→  duration: number
+   178→   178→  date: string
+   179→   179→  createdAt: string
+   180→   180→}
+   181→   181→
+   182→   182→export interface Relationship {
+   183→   183→  id: string
+   184→   184→  projectId: string
+   185→   185→  sourceId: string
+   186→   186→  sourceType: string
+   187→   187→  targetId: string
+   188→   188→  targetType: string
+   189→   189→  type: string
+   190→   190→  description: string
+   191→   191→  createdAt: string
+   192→   192→  updatedAt: string
+   193→   193→}
+   194→   194→
+   195→   195→export interface AgentTask {
+   196→   196→  id: string
+   197→   197→  projectId: string
+   198→   198→  intent: string
+   199→   199→  status: 'pending' | 'running' | 'completed' | 'failed'
+   200→   200→  result: string
+   201→   201→  createdAt: string
+   202→   202→  updatedAt: string
+   203→   203→}
+   204→   204→
+   205→   205→export interface Backup {
+   206→   206→  id: string
+   207→   207→  projectId: string
+   208→   208→  label: string
+   209→   209→  data: string
+   210→   210→  createdAt: string
+   211→   211→}
+   212→   212→
+   213→   213→// ─── Data Store State ───────────────────────────────────────
+   214→   214→
+   215→   215→export interface DataState {
+   216→   216→  projects: Project[]
+   217→   217→  chapters: Chapter[]
+   218→   218→  scenes: Scene[]
+   219→   219→  characters: Character[]
+   220→   220→  locations: Location[]
+   221→   221→  notes: Note[]
+   222→   222→  timeline: TimelineEvent[]
+   223→   223→  world: WorldElement[]
+   224→   224→  objects: StoryObject[]
+   225→   225→  goals: Goal[]
+   226→   226→  comments: Comment[]
+   227→   227→  versions: Version[]
+   228→   228→  sessions: WritingSession[]
+   229→   229→  relationships: Relationship[]
+   230→   230→  agentTasks: AgentTask[]
+   231→   231→  backups: Backup[]
+   232→   232→
+   233→   233→  // Computed helpers
+   234→   234→  getProject: (id: string) => Project | undefined
+   235→   235→  getChaptersByProject: (projectId: string) => Chapter[]
+   236→   236→  getScenesByChapter: (chapterId: string) => Scene[]
+   237→   237→  getScene: (id: string) => Scene | undefined
+   238→   238→  getChapter: (id: string) => Chapter | undefined
+   239→   239→  getCharactersByProject: (projectId: string) => Character[]
+   240→   240→  getCharacter: (id: string) => Character | undefined
+   241→   241→  getLocationsByProject: (projectId: string) => Location[]
+   242→   242→  getLocation: (id: string) => Location | undefined
+   243→   243→  getNotesByProject: (projectId: string) => Note[]
+   244→   244→  getNote: (id: string) => Note | undefined
+   245→   245→  getTimelineByProject: (projectId: string) => TimelineEvent[]
+   246→   246→  getTimelineEvent: (id: string) => TimelineEvent | undefined
+   247→   247→  getWorldByProject: (projectId: string) => WorldElement[]
+   248→   248→  getWorldElement: (id: string) => WorldElement | undefined
+   249→   249→  getObjectsByProject: (projectId: string) => StoryObject[]
+   250→   250→  getObject: (id: string) => StoryObject | undefined
+   251→   251→  getGoalsByProject: (projectId: string) => Goal[]
+   252→   252→  getCommentsByProject: (projectId: string) => Comment[]
+   253→   253→  getVersionsByProject: (projectId: string) => Version[]
+   254→   254→  getSessionsByProject: (projectId: string) => WritingSession[]
+   255→   255→  getRelationshipsByProject: (projectId: string) => Relationship[]
+   256→   256→  getBackupsByProject: (projectId: string) => Backup[]
+   257→   257→  getProjectWordCount: (projectId: string) => number
+   258→   258→
+   259→   259→  // CRUD actions
+   260→   260→  addProject: (data: Partial<Project>) => Project
+   261→   261→  updateProject: (id: string, data: Partial<Project>) => void
+   262→   262→  deleteProject: (id: string) => void
+   263→   263→
+   264→   264→  addChapter: (data: Partial<Chapter>) => Chapter
+   265→   265→  updateChapter: (id: string, data: Partial<Chapter>) => void
+   266→   266→  deleteChapter: (id: string) => void
+   267→   267→
+   268→   268→  addScene: (data: Partial<Scene>) => Scene
+   269→   269→  updateScene: (id: string, data: Partial<Scene>) => void
+   270→   270→  deleteScene: (id: string) => void
+   271→   271→
+   272→   272→  addCharacter: (data: Partial<Character>) => Character
+   273→   273→  updateCharacter: (id: string, data: Partial<Character>) => void
+   274→   274→  deleteCharacter: (id: string) => void
+   275→   275→
+   276→   276→  addLocation: (data: Partial<Location>) => Location
+   277→   277→  updateLocation: (id: string, data: Partial<Location>) => void
+   278→   278→  deleteLocation: (id: string) => void
+   279→   279→
+   280→   280→  addNote: (data: Partial<Note>) => Note
+   281→   281→  updateNote: (id: string, data: Partial<Note>) => void
+   282→   282→  deleteNote: (id: string) => void
+   283→   283→
+   284→   284→  addTimelineEvent: (data: Partial<TimelineEvent>) => TimelineEvent
+   285→   285→  updateTimelineEvent: (id: string, data: Partial<TimelineEvent>) => void
+   286→   286→  deleteTimelineEvent: (id: string) => void
+   287→   287→
+   288→   288→  addWorldElement: (data: Partial<WorldElement>) => WorldElement
+   289→   289→  updateWorldElement: (id: string, data: Partial<WorldElement>) => void
+   290→   290→  deleteWorldElement: (id: string) => void
+   291→   291→
+   292→   292→  addObject: (data: Partial<StoryObject>) => StoryObject
+   293→   293→  updateObject: (id: string, data: Partial<StoryObject>) => void
+   294→   294→  deleteObject: (id: string) => void
+   295→   295→
+   296→   296→  addGoal: (data: Partial<Goal>) => Goal
+   297→   297→  updateGoal: (id: string, data: Partial<Goal>) => void
+   298→   298→  deleteGoal: (id: string) => void
+   299→   299→
+   300→   300→  addComment: (data: Partial<Comment>) => Comment
+   301→   301→  updateComment: (id: string, data: Partial<Comment>) => void
+   302→   302→  deleteComment: (id: string) => void
+   303→   303→
+   304→   304→  addVersion: (data: Partial<Version>) => Version
+   305→   305→
+   306→   306→  addSession: (data: Partial<WritingSession>) => WritingSession
+   307→   307→
+   308→   308→  addRelationship: (data: Partial<Relationship>) => Relationship
+   309→   309→  updateRelationship: (id: string, data: Partial<Relationship>) => void
+   310→   310→  deleteRelationship: (id: string) => void
+   311→   311→
+   312→   312→  addAgentTask: (data: Partial<AgentTask>) => AgentTask
+   313→   313→  updateAgentTask: (id: string, data: Partial<AgentTask>) => void
+   314→   314→
+   315→   315→  addBackup: (data: Partial<Backup>) => Backup
+   316→   316→  deleteBackup: (id: string) => void
+   317→   317→
+   318→   318→  // Seed demo data
+   319→   319→  seedDemoData: () => void
+   320→   320→}
+   321→   321→
+   322→   322→const uid = () => crypto.randomUUID()
+   323→   323→const now = () => new Date().toISOString()
+   324→   324→
+   325→   325→export const useDataStore = create<DataState>()(
+   326→   326→  persist(
+   327→   327→    (set, get) => ({
+   328→   328→      projects: [],
+   329→   329→      chapters: [],
+   330→   330→      scenes: [],
+   331→   331→      characters: [],
+   332→   332→      locations: [],
+   333→   333→      notes: [],
+   334→   334→      timeline: [],
+   335→   335→      world: [],
+   336→   336→      objects: [],
+   337→   337→      goals: [],
+   338→   338→      comments: [],
+   339→   339→      versions: [],
+   340→   340→      sessions: [],
+   341→   341→      relationships: [],
+   342→   342→      agentTasks: [],
+   343→   343→      backups: [],
+   344→   344→
+   345→   345→      // ─── Computed Helpers ──────────────────────────────────
+   346→   346→
+   347→   347→      getProject: (id) => get().projects.find(p => p.id === id),
+   348→   348→      getChaptersByProject: (projectId) => get().chapters.filter(c => c.projectId === projectId).sort((a, b) => a.order - b.order),
+   349→   349→      getScenesByChapter: (chapterId) => get().scenes.filter(s => s.chapterId === chapterId).sort((a, b) => a.order - b.order),
+   350→   350→      getScene: (id) => get().scenes.find(s => s.id === id),
+   351→   351→      getChapter: (id) => get().chapters.find(c => c.id === id),
+   352→   352→      getCharactersByProject: (projectId) => get().characters.filter(c => c.projectId === projectId),
+   353→   353→      getCharacter: (id) => get().characters.find(c => c.id === id),
+   354→   354→      getLocationsByProject: (projectId) => get().locations.filter(l => l.projectId === projectId),
+   355→   355→      getLocation: (id) => get().locations.find(l => l.id === id),
+   356→   356→      getNotesByProject: (projectId) => get().notes.filter(n => n.projectId === projectId),
+   357→   357→      getNote: (id) => get().notes.find(n => n.id === id),
+   358→   358→      getTimelineByProject: (projectId) => get().timeline.filter(t => t.projectId === projectId),
+   359→   359→      getTimelineEvent: (id) => get().timeline.find(t => t.id === id),
+   360→   360→      getWorldByProject: (projectId) => get().world.filter(w => w.projectId === projectId),
+   361→   361→      getWorldElement: (id) => get().world.find(w => w.id === id),
+   362→   362→      getObjectsByProject: (projectId) => get().objects.filter(o => o.projectId === projectId),
+   363→   363→      getObject: (id) => get().objects.find(o => o.id === id),
+   364→   364→      getGoalsByProject: (projectId) => get().goals.filter(g => g.projectId === projectId),
+   365→   365→      getCommentsByProject: (projectId) => get().comments.filter(c => c.projectId === projectId),
+   366→   366→      getVersionsByProject: (projectId) => get().versions.filter(v => v.projectId === projectId),
+   367→   367→      getSessionsByProject: (projectId) => get().sessions.filter(s => s.projectId === projectId),
+   368→   368→      getRelationshipsByProject: (projectId) => get().relationships.filter(r => r.projectId === projectId),
+   369→   369→      getBackupsByProject: (projectId) => get().backups.filter(b => b.projectId === projectId),
+   370→   370→      getProjectWordCount: (projectId) => {
+   371→   371→        const chapters = get().chapters.filter(c => c.projectId === projectId)
+   372→   372→        const chapterIds = new Set(chapters.map(c => c.id))
+   373→   373→        return get().scenes
+   374→   374→          .filter(s => chapterIds.has(s.chapterId))
+   375→   375→          .reduce((sum, s) => sum + (s.wordCount || 0), 0)
+   376→   376→      },
+   377→   377→
+   378→   378→      // ─── Project CRUD ─────────────────────────────────────
+   379→   379→
+   380→   380→      addProject: (data) => {
+   381→   381→        const project: Project = {
+   382→   382→          id: uid(),
+   383→   383→          name: data.name || 'Untitled Project',
+   384→   384→          genre: data.genre || '',
+   385→   385→          description: data.description || '',
+   386→   386→          updatedAt: now(),
+   387→   387→          createdAt: now(),
+   388→   388→          totalWordCount: 0,
+   389→   389→          chapters: [],
+   390→   390→          characters: [],
+   391→   391→          ...data,
+   392→   392→        }
+   393→   393→        set(s => ({ projects: [...s.projects, project] }))
+   394→   394→        return project
+   395→   395→      },
+   396→   396→      updateProject: (id, data) => set(s => ({
+   397→   397→        projects: s.projects.map(p => p.id === id ? { ...p, ...data, updatedAt: now() } : p)
+   398→   398→      })),
+   399→   399→      deleteProject: (id) => set(s => ({
+   400→   400→        projects: s.projects.filter(p => p.id !== id),
+   401→   401→        chapters: s.chapters.filter(c => c.projectId !== id),
+   402→   402→        scenes: s.scenes.filter(sc => {
+   403→   403→          if (sc.projectId === id) return false
+   404→   404→          const chapter = s.chapters.find(c => c.id === sc.chapterId)
+   405→   405→          return chapter?.projectId !== id
+   406→   406→        }),
+   407→   407→        characters: s.characters.filter(c => c.projectId !== id),
+   408→   408→        locations: s.locations.filter(l => l.projectId !== id),
+   409→   409→        notes: s.notes.filter(n => n.projectId !== id),
+   410→   410→        timeline: s.timeline.filter(t => t.projectId !== id),
+   411→   411→        world: s.world.filter(w => w.projectId !== id),
+   412→   412→        objects: s.objects.filter(o => o.projectId !== id),
+   413→   413→        goals: s.goals.filter(g => g.projectId !== id),
+   414→   414→        comments: s.comments.filter(c => c.projectId !== id),
+   415→   415→        versions: s.versions.filter(v => v.projectId !== id),
+   416→   416→        sessions: s.sessions.filter(se => se.projectId !== id),
+   417→   417→        relationships: s.relationships.filter(r => r.projectId !== id),
+   418→   418→      })),
+   419→   419→
+   420→   420→      // ─── Chapter CRUD ─────────────────────────────────────
+   421→   421→
+   422→   422→      addChapter: (data) => {
+   423→   423→        const chapter: Chapter = {
+   424→   424→          id: uid(),
+   425→   425→          projectId: data.projectId || '',
+   426→   426→          title: data.title || 'Untitled Chapter',
+   427→   427→          order: data.order ?? get().chapters.filter(c => c.projectId === data.projectId).length,
+   428→   428→          createdAt: now(),
+   429→   429→          updatedAt: now(),
+   430→   430→          ...data,
+   431→   431→        }
+   432→   432→        set(s => ({ chapters: [...s.chapters, chapter] }))
+   433→   433→        return chapter
+   434→   434→      },
+   435→   435→      updateChapter: (id, data) => set(s => ({
+   436→   436→        chapters: s.chapters.map(c => c.id === id ? { ...c, ...data, updatedAt: now() } : c)
+   437→   437→      })),
+   438→   438→      deleteChapter: (id) => {
+   439→   439→        const chapter = get().chapters.find(c => c.id === id)
+   440→   440→        if (chapter) {
+   441→   441→          set(s => ({
+   442→   442→            chapters: s.chapters.filter(c => c.id !== id),
+   443→   443→            scenes: s.scenes.filter(sc => sc.chapterId !== id),
+   444→   444→          }))
+   445→   445→        }
+   446→   446→      },
+   447→   447→
+   448→   448→      // ─── Scene CRUD ───────────────────────────────────────
+   449→   449→
+   450→   450→      addScene: (data) => {
+   451→   451→        const scene: Scene = {
+   452→   452→          id: uid(),
+   453→   453→          chapterId: data.chapterId || '',
+   454→   454→          projectId: data.projectId || '',
+   455→   455→          title: data.title || 'Untitled Scene',
+   456→   456→          content: data.content || '',
+   457→   457→          order: data.order ?? get().scenes.filter(s => s.chapterId === data.chapterId).length,
+   458→   458→          wordCount: data.wordCount || 0,
+   459→   459→          createdAt: now(),
+   460→   460→          updatedAt: now(),
+   461→   461→          ...data,
+   462→   462→        }
+   463→   463→        set(s => ({ scenes: [...s.scenes, scene] }))
+   464→   464→        return scene
+   465→   465→      },
+   466→   466→      updateScene: (id, data) => set(s => ({
+   467→   467→        scenes: s.scenes.map(sc => sc.id === id ? { ...sc, ...data, updatedAt: now() } : sc)
+   468→   468→      })),
+   469→   469→      deleteScene: (id) => set(s => ({
+   470→   470→        scenes: s.scenes.filter(sc => sc.id !== id),
+   471→   471→      })),
+   472→   472→
+   473→   473→      // ─── Character CRUD ───────────────────────────────────
+   474→   474→
+   475→   475→      addCharacter: (data) => {
+   476→   476→        const character: Character = {
+   477→   477→          id: uid(),
+   478→   478→          projectId: data.projectId || '',
+   479→   479→          name: data.name || 'Unnamed Character',
+   480→   480→          role: data.role || 'supporting',
+   481→   481→          description: data.description || '',
+   482→   482→          motivation: data.motivation || '',
+   483→   483→          backstory: data.backstory || '',
+   484→   484→          age: data.age || '',
+   485→   485→          occupation: data.occupation || '',
+   486→   486→          personality: data.personality || '',
+   487→   487→          appearance: data.appearance || '',
+   488→   488→          goals: data.goals || '',
+   489→   489→          fears: data.fears || '',
+   490→   490→          tags: data.tags || '[]',
+   491→   491→          createdAt: now(),
+   492→   492→          updatedAt: now(),
+   493→   493→          ...data,
+   494→   494→        }
+   495→   495→        set(s => ({ characters: [...s.characters, character] }))
+   496→   496→        return character
+   497→   497→      },
+   498→   498→      updateCharacter: (id, data) => set(s => ({
+   499→   499→        characters: s.characters.map(c => c.id === id ? { ...c, ...data, updatedAt: now() } : c)
+   500→   500→      })),
+   501→   501→      deleteCharacter: (id) => set(s => ({
+   502→   502→        characters: s.characters.filter(c => c.id !== id),
+   503→   503→      })),
+   504→   504→
+   505→   505→      // ─── Location CRUD ────────────────────────────────────
+   506→   506→
+   507→   507→      addLocation: (data) => {
+   508→   508→        const location: Location = {
+   509→   509→          id: uid(),
+   510→   510→          projectId: data.projectId || '',
+   511→   511→          name: data.name || 'Unnamed Location',
+   512→   512→          type: data.type || 'setting',
+   513→   513→          description: data.description || '',
+   514→   514→          atmosphere: data.atmosphere || '',
+   515→   515→          history: data.history || '',
+   516→   516→          features: data.features || '',
+   517→   517→          parentLocationId: data.parentLocationId || '',
+   518→   518→          tags: data.tags || '[]',
+   519→   519→          createdAt: now(),
+   520→   520→          updatedAt: now(),
+   521→   521→          ...data,
+   522→   522→        }
+   523→   523→        set(s => ({ locations: [...s.locations, location] }))
+   524→   524→        return location
+   525→   525→      },
+   526→   526→      updateLocation: (id, data) => set(s => ({
+   527→   527→        locations: s.locations.map(l => l.id === id ? { ...l, ...data, updatedAt: now() } : l)
+   528→   528→      })),
+   529→   529→      deleteLocation: (id) => set(s => ({
+   530→   530→        locations: s.locations.filter(l => l.id !== id),
+   531→   531→      })),
+   532→   532→
+   533→   533→      // ─── Note CRUD ────────────────────────────────────────
+   534→   534→
+   535→   535→      addNote: (data) => {
+   536→   536→        const note: Note = {
+   537→   537→          id: uid(),
+   538→   538→          projectId: data.projectId || '',
+   539→   539→          title: data.title || 'Untitled Note',
+   540→   540→          content: data.content || '',
+   541→   541→          category: data.category || 'general',
+   542→   542→          linkedType: data.linkedType || '',
+   543→   543→          linkedId: data.linkedId || '',
+   544→   544→          priority: data.priority ?? 0,
+   545→   545→          resolved: data.resolved || false,
+   546→   546→          tags: data.tags || '[]',
+   547→   547→          createdAt: now(),
+   548→   548→          updatedAt: now(),
+   549→   549→          ...data,
+   550→   550→        }
+   551→   551→        set(s => ({ notes: [...s.notes, note] }))
+   552→   552→        return note
+   553→   553→      },
+   554→   554→      updateNote: (id, data) => set(s => ({
+   555→   555→        notes: s.notes.map(n => n.id === id ? { ...n, ...data, updatedAt: now() } : n)
+   556→   556→      })),
+   557→   557→      deleteNote: (id) => set(s => ({
+   558→   558→        notes: s.notes.filter(n => n.id !== id),
+   559→   559→      })),
+   560→   560→
+   561→   561→      // ─── Timeline CRUD ────────────────────────────────────
+   562→   562→
+   563→   563→      addTimelineEvent: (data) => {
+   564→   564→        const event: TimelineEvent = {
+   565→   565→          id: uid(),
+   566→   566→          projectId: data.projectId || '',
+   567→   567→          title: data.title || 'Untitled Event',
+   568→   568→          description: data.description || '',
+   569→   569→          date: data.date || now(),
+   570→   570→          chapterId: data.chapterId || null,
+   571→   571→          time: data.time || '',
+   572→   572→          duration: data.duration || '',
+   573→   573→          location: data.location || '',
+   574→   574→          characters: data.characters || '[]',
+   575→   575→          objects: data.objects || '[]',
+   576→   576→          cause: data.cause || '',
+   577→   577→          consequence: data.consequence || '',
+   578→   578→          eventType: data.eventType || 'custom',
+   579→   579→          tags: data.tags || '[]',
+   580→   580→          createdAt: now(),
+   581→   581→          updatedAt: now(),
+   582→   582→          ...data,
+   583→   583→        }
+   584→   584→        set(s => ({ timeline: [...s.timeline, event] }))
+   585→   585→        return event
+   586→   586→      },
+   587→   587→      updateTimelineEvent: (id, data) => set(s => ({
+   588→   588→        timeline: s.timeline.map(t => t.id === id ? { ...t, ...data, updatedAt: now() } : t)
+   589→   589→      })),
+   590→   590→      deleteTimelineEvent: (id) => set(s => ({
+   591→   591→        timeline: s.timeline.filter(t => t.id !== id),
+   592→   592→      })),
+   593→   593→
+   594→   594→      // ─── World CRUD ───────────────────────────────────────
+   595→   595→
+   596→   596→      addWorldElement: (data) => {
+   597→   597→        const element: WorldElement = {
+   598→   598→          id: uid(),
+   599→   599→          projectId: data.projectId || '',
+   600→   600→          name: data.name || 'Unnamed Element',
+   601→   601→          category: data.category || 'lore',
+   602→   602→          description: data.description || '',
+   603→   603→          parent: data.parent || '',
+   604→   604→          rules: data.rules || '',
+   605→   605→          history: data.history || '',
+   606→   606→          tags: data.tags || '[]',
+   607→   607→          createdAt: now(),
+   608→   608→          updatedAt: now(),
+   609→   609→          ...data,
+   610→   610→        }
+   611→   611→        set(s => ({ world: [...s.world, element] }))
+   612→   612→        return element
+   613→   613→      },
+   614→   614→      updateWorldElement: (id, data) => set(s => ({
+   615→   615→        world: s.world.map(w => w.id === id ? { ...w, ...data, updatedAt: now() } : w)
+   616→   616→      })),
+   617→   617→      deleteWorldElement: (id) => set(s => ({
+   618→   618→        world: s.world.filter(w => w.id !== id),
+   619→   619→      })),
+   620→   620→
+   621→   621→      // ─── Object CRUD ──────────────────────────────────────
+   622→   622→
+   623→   623→      addObject: (data) => {
+   624→   624→        const obj: StoryObject = {
+   625→   625→          id: uid(),
+   626→   626→          projectId: data.projectId || '',
+   627→   627→          name: data.name || 'Unnamed Object',
+   628→   628→          type: data.type || 'prop',
+   629→   629→          description: data.description || '',
+   630→   630→          owner: data.owner || '',
+   631→   631→          location: data.location || '',
+   632→   632→          history: data.history || '',
+   633→   633→          appearance: data.appearance || '',
+   634→   634→          significance: data.significance || '',
+   635→   635→          tags: data.tags || '[]',
+   636→   636→          createdAt: now(),
+   637→   637→          updatedAt: now(),
+   638→   638→          ...data,
+   639→   639→        }
+   640→   640→        set(s => ({ objects: [...s.objects, obj] }))
+   641→   641→        return obj
+   642→   642→      },
+   643→   643→      updateObject: (id, data) => set(s => ({
+   644→   644→        objects: s.objects.map(o => o.id === id ? { ...o, ...data, updatedAt: now() } : o)
+   645→   645→      })),
+   646→   646→      deleteObject: (id) => set(s => ({
+   647→   647→        objects: s.objects.filter(o => o.id !== id),
+   648→   648→      })),
+   649→   649→
+   650→   650→      // ─── Goal CRUD ────────────────────────────────────────
+   651→   651→
+   652→   652→      addGoal: (data) => {
+   653→   653→        const goal: Goal = {
+   654→   654→          id: uid(),
+   655→   655→          projectId: data.projectId || '',
+   656→   656→          type: data.type || 'daily',
+   657→   657→          target: data.target || 1000,
+   658→   658→          current: data.current || 0,
+   659→   659→          deadline: data.deadline || null,
+   660→   660→          label: data.label || 'Write words',
+   661→   661→          createdAt: now(),
+   662→   662→          updatedAt: now(),
+   663→   663→          ...data,
+   664→   664→        }
+   665→   665→        set(s => ({ goals: [...s.goals, goal] }))
+   666→   666→        return goal
+   667→   667→      },
+   668→   668→      updateGoal: (id, data) => set(s => ({
+   669→   669→        goals: s.goals.map(g => g.id === id ? { ...g, ...data, updatedAt: now() } : g)
+   670→   670→      })),
+   671→   671→      deleteGoal: (id) => set(s => ({
+   672→   672→        goals: s.goals.filter(g => g.id !== id),
+   673→   673→      })),
+   674→   674→
+   675→   675→      // ─── Comment CRUD ─────────────────────────────────────
+   676→   676→
+   677→   677→      addComment: (data) => {
+   678→   678→        const comment: Comment = {
+   679→   679→          id: uid(),
+   680→   680→          projectId: data.projectId || '',
+   681→   681→          sceneId: data.sceneId || null,
+   682→   682→          chapterId: data.chapterId || null,
+   683→   683→          text: data.text || '',
+   684→   684→          resolved: data.resolved || false,
+   685→   685→          createdAt: now(),
+   686→   686→          updatedAt: now(),
+   687→   687→          ...data,
+   688→   688→        }
+   689→   689→        set(s => ({ comments: [...s.comments, comment] }))
+   690→   690→        return comment
+   691→   691→      },
+   692→   692→      updateComment: (id, data) => set(s => ({
+   693→   693→        comments: s.comments.map(c => c.id === id ? { ...c, ...data, updatedAt: now() } : c)
+   694→   694→      })),
+   695→   695→      deleteComment: (id) => set(s => ({
+   696→   696→        comments: s.comments.filter(c => c.id !== id),
+   697→   697→      })),
+   698→   698→
+   699→   699→      // ─── Version ──────────────────────────────────────────
+   700→   700→
+   701→   701→      addVersion: (data) => {
+   702→   702→        const version: Version = {
+   703→   703→          id: uid(),
+   704→   704→          projectId: data.projectId || '',
+   705→   705→          sceneId: data.sceneId || '',
+   706→   706→          content: data.content || '',
+   707→   707→          label: data.label || 'Auto-save',
+   708→   708→          wordCount: data.wordCount || 0,
+   709→   709→          createdAt: now(),
+   710→   710→          ...data,
+   711→   711→        }
+   712→   712→        set(s => ({ versions: [...s.versions, version] }))
+   713→   713→        return version
+   714→   714→      },
+   715→   715→
+   716→   716→      // ─── Session ──────────────────────────────────────────
+   717→   717→
+   718→   718→      addSession: (data) => {
+   719→   719→        const session: WritingSession = {
+   720→   720→          id: uid(),
+   721→   721→          projectId: data.projectId || '',
+   722→   722→          wordsWritten: data.wordsWritten || 0,
+   723→   723→          duration: data.duration || 0,
+   724→   724→          date: data.date || now(),
+   725→   725→          createdAt: now(),
+   726→   726→          ...data,
+   727→   727→        }
+   728→   728→        set(s => ({ sessions: [...s.sessions, session] }))
+   729→   729→        return session
+   730→   730→      },
+   731→   731→
+   732→   732→      // ─── Relationship CRUD ────────────────────────────────
+   733→   733→
+   734→   734→      addRelationship: (data) => {
+   735→   735→        const rel: Relationship = {
+   736→   736→          id: uid(),
+   737→   737→          projectId: data.projectId || '',
+   738→   738→          sourceId: data.sourceId || '',
+   739→   739→          sourceType: data.sourceType || 'character',
+   740→   740→          targetId: data.targetId || '',
+   741→   741→          targetType: data.targetType || 'character',
+   742→   742→          type: data.type || 'related',
+   743→   743→          description: data.description || '',
+   744→   744→          createdAt: now(),
+   745→   745→          updatedAt: now(),
+   746→   746→          ...data,
+   747→   747→        }
+   748→   748→        set(s => ({ relationships: [...s.relationships, rel] }))
+   749→   749→        return rel
+   750→   750→      },
+   751→   751→      updateRelationship: (id, data) => set(s => ({
+   752→   752→        relationships: s.relationships.map(r => r.id === id ? { ...r, ...data, updatedAt: now() } : r)
+   753→   753→      })),
+   754→   754→      deleteRelationship: (id) => set(s => ({
+   755→   755→        relationships: s.relationships.filter(r => r.id !== id),
+   756→   756→      })),
+   757→   757→
+   758→   758→      // ─── Agent Task ───────────────────────────────────────
+   759→   759→
+   760→   760→      addAgentTask: (data) => {
+   761→   761→        const task: AgentTask = {
+   762→   762→          id: uid(),
+   763→   763→          projectId: data.projectId || '',
+   764→   764→          intent: data.intent || '',
+   765→   765→          status: data.status || 'pending',
+   766→   766→          result: data.result || '',
+   767→   767→          createdAt: now(),
+   768→   768→          updatedAt: now(),
+   769→   769→          ...data,
+   770→   770→        }
+   771→   771→        set(s => ({ agentTasks: [...s.agentTasks, task] }))
+   772→   772→        return task
+   773→   773→      },
+   774→   774→      updateAgentTask: (id, data) => set(s => ({
+   775→   775→        agentTasks: s.agentTasks.map(t => t.id === id ? { ...t, ...data, updatedAt: now() } : t)
+   776→   776→      })),
+   777→   777→
+   778→   778→      // ─── Backup ───────────────────────────────────────────
+   779→   779→
+   780→   780→      addBackup: (data) => {
+   781→   781→        const backup: Backup = {
+   782→   782→          id: uid(),
+   783→   783→          projectId: data.projectId || '',
+   784→   784→          label: data.label || 'Manual backup',
+   785→   785→          data: data.data || '{}',
+   786→   786→          createdAt: now(),
+   787→   787→          ...data,
+   788→   788→        }
+   789→   789→        set(s => ({ backups: [...s.backups, backup] }))
+   790→   790→        return backup
+   791→   791→      },
+   792→   792→      deleteBackup: (id) => set(s => ({
+   793→   793→        backups: s.backups.filter(b => b.id !== id),
+   794→   794→      })),
+   795→   795→
+   796→   796→      // ─── Seed Demo Data ───────────────────────────────────
+   797→   797→
+   798→   798→      seedDemoData: () => {
+   799→   799→        const state = get()
+   800→   800→        if (state.projects.length > 0) return // Already has data
+   801→   801→
+   802→   802→        // Create demo project
+   803→   803→        const project = get().addProject({
+   804→   804→          name: 'The Last Lighthouse',
+   805→   805→          genre: 'Literary Fiction',
+   806→   806→          description: 'A story about a lighthouse keeper who discovers messages in bottles from a civilization that no longer exists.',
+   807→   807→        })
+   808→   808→
+   809→   809→        // Create chapters and scenes
+   810→   810→        const ch1 = get().addChapter({ projectId: project.id, title: 'Chapter 1: The Storm', order: 0 })
+   811→   811→        const sc1 = get().addScene({
+   812→   812→          projectId: project.id,
+   813→   813→          chapterId: ch1.id,
+   814→   814→          title: 'The Arrival',
+   815→   815→          content: '<p>The rain came sideways that night, hammering the lighthouse windows with a fury that seemed almost personal. Maren pulled her chair closer to the fire, though the cold she felt had nothing to do with the storm outside.</p><p>She had been keeper of the North Point Light for seven years now—long enough to know every creak of the tower, every whine of wind through the lantern room. But tonight was different. Tonight, the sea was trying to tell her something.</p><p>Through the rain-streaked glass, she could see the waves breaking white against the rocks far below. Each flash of lightning froze the water mid-crash, sculpture of violence and beauty. And in that frozen moment, she saw it—a dark shape, tumbling in the surf.</p><p>A bottle. No, not just one. Dozens of them, riding the waves like a fleet of ghost ships, their glass bodies catching the lightning and throwing it back in green and amber sparks.</p>',
+   816→   816→          order: 0,
+   817→   817→          wordCount: 168,
+   818→   818→        })
+   819→   819→        get().addScene({
+   820→   820→          projectId: project.id,
+   821→   821→          chapterId: ch1.id,
+   822→   822→          title: 'The Message',
+   823→   823→          content: '<p>The first bottle washed up at dawn, tangled in a nest of kelp at the base of the lighthouse steps. Maren retrieved it with her iron hook—the one she used for fetching debris from the rocks—and carried it inside.</p><p>The paper inside was yellowed and brittle, the ink faded to a watery brown. But the words were still legible, written in a language she had never seen yet somehow understood:</p><p><em>"We are the keepers of the Southern Archipelago Light. We write to you from the year 1847. If this message reaches you, know that we have found the frequency. The light speaks. It has always spoken. You need only learn to listen."</em></p>',
+   824→   824→          order: 1,
+   825→   825→          wordCount: 132,
+   826→   826→        })
+   827→   827→
+   828→   828→        const ch2 = get().addChapter({ projectId: project.id, title: 'Chapter 2: The Frequency', order: 1 })
+   829→   829→        get().addScene({
+   830→   830→          projectId: project.id,
+   831→   831→          chapterId: ch2.id,
+   832→   832→          title: 'Listening',
+   833→   833→          content: '<p>Maren spent the next three days adjusting the lens. Not the Fresnel lens itself—that was perfect, had been perfect since the day it was installed—but the auxiliary reflectors, the small mirrors she had added over the years to catch and redirect stray beams.</p><p>She was looking for something. A pattern. A rhythm in the light that went beyond the simple on-off pulse of the lamp. The messages had told her it existed. She just had to find it.</p>',
+   834→   834→          order: 0,
+   835→   835→          wordCount: 82,
+   836→   836→        })
+   837→   837→
+   838→   838→        const ch3 = get().addChapter({ projectId: project.id, title: 'Chapter 3: The Network', order: 2 })
+   839→   839→        get().addScene({
+   840→   840→          projectId: project.id,
+   841→   841→          chapterId: ch3.id,
+   842→   842→          title: 'Discovery',
+   843→   843→          content: '<p>On the fourteenth night, she found it. The frequency was buried in the strobe pattern itself—a modulation so subtle that it was invisible to the naked eye, but unmistakable once you knew what to look for.</p>',
+   844→   844→          order: 0,
+   845→   845→          wordCount: 46,
+   846→   846→        })
+   847→   847→
+   848→   848→        // Create characters
+   849→   849→        get().addCharacter({
+   850→   850→          projectId: project.id,
+   851→   851→          name: 'Maren Voss',
+   852→   852→          role: 'protagonist',
+   853→   853→          description: 'The lighthouse keeper, a woman in her early thirties with weathered hands and calm, watchful eyes. Seven years at the North Point Light have given her an intimate understanding of the sea.',
+   854→   854→          motivation: 'To understand the messages from the other lighthouses and discover what happened to the network.',
+   855→   855→          backstory: 'Former naval communications officer who took the lighthouse post after a personal tragedy.',
+   856→   856→        })
+   857→   857→        get().addCharacter({
+   858→   858→          projectId: project.id,
+   859→   859→          name: 'Captain Aldric',
+   860→   860→          role: 'supporting',
+   861→   861→          description: 'The retired sea captain who delivers supplies to the lighthouse once a month.',
+   862→   862→          motivation: 'To help Maren while keeping his own secrets about the old lighthouse network.',
+   863→   863→          backstory: 'Once commanded a vessel in the Southern Archipelago.',
+   864→   864→        })
+   865→   865→        get().addCharacter({
+   866→   866→          projectId: project.id,
+   867→   867→          name: 'The Keeper of 1847',
+   868→   868→          role: 'antagonist',
+   869→   869→          description: 'A mysterious figure from the past whose messages seem to know more than they should about the present.',
+   870→   870→          motivation: 'Unknown — possibly to complete the network or to warn of something.',
+   871→   871→          backstory: 'One of the original lighthouse keepers who discovered the light frequency.',
+   872→   872→        })
+   873→   873→
+   874→   874→        // Create locations
+   875→   875→        get().addLocation({
+   876→   876→          projectId: project.id,
+   877→   877→          name: 'North Point Lighthouse',
+   878→   878→          type: 'primary setting',
+   879→   879→          description: 'A stone lighthouse perched on a rocky promontory, battered by the North Sea. The lantern room offers a 360-degree view of the ocean.',
+   880→   880→          atmosphere: 'Isolated, windswept, ancient. The stone walls hold warmth from the fire but the air always carries the bite of salt.',
+   881→   881→        })
+   882→   882→        get().addLocation({
+   883→   883→          projectId: project.id,
+   884→   884→          name: 'The Rocky Shore',
+   885→   885→          type: 'setting',
+   886→   886→          description: 'The jagged rocks below the lighthouse where the bottles wash ashore.',
+   887→   887→          atmosphere: 'Dangerous, beautiful, ever-changing with the tides.',
+   888→   888→        })
+   889→   889→
+   890→   890→        // Create notes
+   891→   891→        get().addNote({
+   892→   892→          projectId: project.id,
+   893→   893→          title: 'Research: Lighthouse communication',
+   894→   894→          content: 'Real lighthouses did use different flash patterns to identify themselves. The idea of encoding messages in light is historically grounded.',
+   895→   895→          category: 'research',
+   896→   896→        })
+   897→   897→        get().addNote({
+   898→   898→          projectId: project.id,
+   899→   899→          title: 'Theme notes',
+   900→   900→          content: 'The core theme is about finding connection in isolation. The lighthouses are metaphors for human communication—sending signals into the dark, hoping someone is watching.',
+   901→   901→          category: 'outline',
+   902→   902→        })
+   903→   903→
+   904→   904→        // Create timeline events
+   905→   905→        get().addTimelineEvent({
+   906→   906→          projectId: project.id,
+   907→   907→          title: 'The Storm',
+   908→   908→          description: 'Maren discovers the first bottles during the storm',
+   909→   909→          date: '2024-01-15',
+   910→   910→          chapterId: ch1.id,
+   911→   911→        })
+   912→   912→        get().addTimelineEvent({
+   913→   913→          projectId: project.id,
+   914→   914→          title: 'Finding the Frequency',
+   915→   915→          description: 'After 14 nights, Maren decodes the light pattern',
+   916→   916→          date: '2024-01-29',
+   917→   917→          chapterId: ch2.id,
+   918→   918→        })
+   919→   919→
+   920→   920→        // Create world elements
+   921→   921→        get().addWorldElement({
+   922→   922→          projectId: project.id,
+   923→   923→          name: 'The Light Frequency',
+   924→   924→          category: 'magic system',
+   925→   925→          description: 'A modulation pattern in lighthouse strobe sequences that allows transmission of messages over vast distances.',
+   926→   926→          rules: 'Requires precise alignment of Fresnel lens and auxiliary reflectors. Messages degrade over distance. Cannot transmit through fog.',
+   927→   927→        })
+   928→   928→        get().addWorldElement({
+   929→   929→          projectId: project.id,
+   930→   930→          name: 'The Lighthouse Network',
+   931→   931→          category: 'lore',
+   932→   932→          description: 'An ancient network of lighthouses that once communicated using the light frequency, now largely broken and forgotten.',
+   933→   933→          rules: 'Each lighthouse has a unique signature pattern. Messages can only be received by a keeper who knows what to listen for.',
+   934→   934→        })
+   935→   935→
+   936→   936→        // Create objects
+   937→   937→        get().addObject({
+   938→   938→          projectId: project.id,
+   939→   939→          name: 'The Iron Hook',
+   940→   940→          type: 'prop',
+   941→   941→          description: 'A long-handled hook Maren uses to retrieve debris from the rocks.',
+   942→   942→          significance: 'Symbolizes her reach into the unknown—the tool that first pulls the messages from the sea.',
+   943→   943→        })
+   944→   944→        get().addObject({
+   945→   945→          projectId: project.id,
+   946→   946→          name: 'The Bottles',
+   947→   947→          type: 'prop',
+   948→   948→          description: 'Green glass bottles carrying messages from other lighthouses.',
+   949→   949→          significance: 'Physical manifestation of the network—each bottle is a voice from the past.',
+   950→   950→        })
+   951→   951→
+   952→   952→        // Create goals
+   953→   953→        get().addGoal({
+   954→   954→          projectId: project.id,
+   955→   955→          type: 'daily',
+   956→   956→          target: 1000,
+   957→   957→          current: 428,
+   958→   958→          label: 'Daily word count',
+   959→   959→        })
+   960→   960→
+   961→   961→        // Update project word count
+   962→   962→        get().updateProject(project.id, {
+   963→   963→          totalWordCount: get().getProjectWordCount(project.id)
+   964→   964→        })
+   965→   965→      },
+   966→   966→    }),
+   967→   967→    {
+   968→   968→      name: 'openwriter-data',
+   969→   969→      version: 1,
+   970→   970→    }
+   971→   971→  )
+   972→   972→)
+   973→   973→

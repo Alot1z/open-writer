@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -55,78 +56,56 @@ interface NoteDetailProps {
 export function NoteDetail({ noteId: noteIdProp }: NoteDetailProps = {}) {
   const { selectedNoteId, setRightPanel, setSelectedNote } = useWriterStore()
   const effectiveId = noteIdProp ?? selectedNoteId
+  const store = useDataStore()
   const { toast } = useToast()
-  const [note, setNote] = useState<Note | null>(null)
-  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const fetchNote = useCallback(async () => {
-    if (!effectiveId) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/notes/${effectiveId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setNote(data)
+  // Load note directly from data store
+  const rawNote = effectiveId ? store.getNote(effectiveId) : undefined
+  const note: Note | null = rawNote
+    ? {
+        id: rawNote.id,
+        title: rawNote.title,
+        content: rawNote.content ?? '',
+        category: rawNote.category ?? 'general',
+        linkedType: rawNote.linkedType ?? '',
+        linkedId: rawNote.linkedId ?? '',
+        priority: rawNote.priority ?? 0,
+        resolved: rawNote.resolved ?? false,
+        tags: rawNote.tags ?? '[]',
       }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false)
-    }
-  }, [effectiveId])
+    : null
 
-  useEffect(() => {
-    fetchNote()
-  }, [fetchNote])
+  const saveField = (field: string, value: string | number | boolean) => {
+    if (!rawNote) return
+    setSaving(true)
 
-  const saveField = useCallback(
-    (field: string, value: string | number | boolean) => {
-      if (!note) return
-      setNote((prev) => (prev ? { ...prev, [field]: value } : prev))
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      store.updateNote(rawNote.id, { [field]: value } as Partial<import('@/store/data-store').Note>)
+      setSaving(false)
+      toast({ title: 'Saved', description: 'Note updated' })
+    }, 800)
+  }
 
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(async () => {
-        setSaving(true)
-        try {
-          const res = await fetch(`/api/notes/${note.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ [field]: value }),
-          })
-          if (res.ok) {
-            toast({ title: 'Saved', description: 'Note updated' })
-          }
-        } catch {
-          // silent
-        } finally {
-          setSaving(false)
-        }
-      }, 800)
-    },
-    [note, toast]
-  )
-
-  const handleDelete = async () => {
-    if (!note) return
-    try {
-      const res = await fetch(`/api/notes/${note.id}`, { method: 'DELETE' })
-      if (res.ok) {
-        setSelectedNote(null)
-        setRightPanel('none')
-        toast({ title: 'Deleted', description: 'Note removed' })
-      }
-    } catch {
-      // silent
-    }
+  const handleDelete = () => {
+    if (!rawNote) return
+    store.deleteNote(rawNote.id)
+    setSelectedNote(null)
+    setRightPanel('none')
+    toast({ title: 'Deleted', description: 'Note removed' })
   }
 
   const parseTags = (tagsStr: string): string[] => {
     try { return JSON.parse(tagsStr || '[]') } catch { return [] }
   }
 
-  if (loading) {
+  if (!effectiveId) {
+    return <div className="p-6 text-center text-sm text-stone-500">Select a note to view details</div>
+  }
+
+  if (!note) {
     return (
       <div className="p-4 space-y-4">
         <Skeleton className="h-6 w-40" />
@@ -139,10 +118,6 @@ export function NoteDetail({ noteId: noteIdProp }: NoteDetailProps = {}) {
         ))}
       </div>
     )
-  }
-
-  if (!note) {
-    return <div className="p-6 text-center text-sm text-stone-500">Select a note to view details</div>
   }
 
   const tags = parseTags(note.tags)

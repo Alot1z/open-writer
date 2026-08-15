@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useMemo } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import {
   BookOpen,
@@ -26,138 +26,91 @@ interface HealthCheck {
 
 export function HealthPanel() {
   const { currentProjectId } = useWriterStore()
-  const [checks, setChecks] = useState<HealthCheck[]>([])
-  const [loading, setLoading] = useState(true)
+  const store = useDataStore()
 
-  const fetchHealth = useCallback(async () => {
-    if (!currentProjectId) return
-    setLoading(true)
-    try {
-      const [
-        charsRes,
-        locsRes,
-        notesRes,
-        timelineRes,
-        chaptersRes,
-      ] = await Promise.all([
-        fetch(`/api/characters?projectId=${currentProjectId}`),
-        fetch(`/api/locations?projectId=${currentProjectId}`),
-        fetch(`/api/notes?projectId=${currentProjectId}`),
-        fetch(`/api/timeline?projectId=${currentProjectId}`),
-        fetch(`/api/chapters?projectId=${currentProjectId}`),
-      ])
+  // ─── Compute health checks from store ────────
 
-      const characters = charsRes.ok ? await charsRes.json() : []
-      const notes = notesRes.ok ? await notesRes.json() : []
-      const timeline = timelineRes.ok ? await timelineRes.json() : []
-      const chapters = chaptersRes.ok ? await chaptersRes.json() : []
+  const checks = useMemo((): HealthCheck[] => {
+    if (!currentProjectId) return []
 
-      // Calculate total word count
-      let totalWords = 0
-      for (const ch of chapters) {
-        if (ch.scenes) {
-          for (const scene of ch.scenes) {
-            totalWords += scene.wordCount || 0
-          }
-        }
-      }
+    const characters = store.getCharactersByProject(currentProjectId)
+    const notes = store.getNotesByProject(currentProjectId)
+    const timeline = store.getTimelineByProject(currentProjectId)
+    const totalWords = store.getProjectWordCount(currentProjectId)
 
-      // Calculate unresolved notes
-      const unresolvedNotes = notes.filter((n: { resolved: boolean }) => !n.resolved).length
+    // Calculate unresolved notes
+    const unresolvedNotes = notes.filter(n => !n.resolved).length
 
-      // Calculate orphaned notes (notes without linked entities)
-      const orphanedNotes = notes.filter(
-        (n: { linkedType: string; linkedId: string }) => !n.linkedType || !n.linkedId
-      ).length
+    // Calculate orphaned notes (notes without linked entities)
+    const orphanedNotes = notes.filter(n => !n.linkedType || !n.linkedId).length
 
-      // Check for timeline contradictions (simple heuristic: events with same date and conflicting locations)
-      let timelineContradictions = 0
-      const eventsByDate: Record<string, { location: string }[]> = {}
-      for (const event of timeline) {
-        if (!event.date) continue
-        if (!eventsByDate[event.date]) eventsByDate[event.date] = []
-        eventsByDate[event.date].push({ location: event.location })
-      }
-      for (const [, events] of Object.entries(eventsByDate)) {
-        if (events.length > 1) {
-          const locations = new Set(events.map((e) => e.location).filter(Boolean))
-          // If same character appears in different locations on the same date, flag it
-          if (locations.size > 1 && events.length > locations.size) {
-            timelineContradictions++
-          }
-        }
-      }
-
-      // Dangling references: characters referenced in scenes that don't exist
-      const danglingRefs = 0 // Would need scene data to compute
-
-      const healthChecks: HealthCheck[] = [
-        {
-          label: 'Manuscript',
-          status: 'ok',
-          value: `${totalWords.toLocaleString()} words`,
-          detail: 'Total word count',
-        },
-        {
-          label: 'Characters',
-          status: characters.length > 0 ? 'ok' : 'warning',
-          value: characters.length,
-          detail: characters.length === 0 ? 'No characters defined' : 'Characters defined',
-        },
-        {
-          label: 'Timeline',
-          status: timelineContradictions > 0 ? 'warning' : 'ok',
-          value: timelineContradictions > 0 ? timelineContradictions : '✓',
-          detail: timelineContradictions > 0
-            ? `${timelineContradictions} potential contradiction${timelineContradictions > 1 ? 's' : ''}`
-            : 'No contradictions detected',
-        },
-        {
-          label: 'Unresolved Threads',
-          status: unresolvedNotes > 0 ? 'warning' : 'ok',
-          value: unresolvedNotes,
-          detail: unresolvedNotes > 0 ? 'Notes that need resolution' : 'All notes resolved',
-        },
-        {
-          label: 'Orphaned Notes',
-          status: orphanedNotes > 0 ? 'warning' : 'ok',
-          value: orphanedNotes,
-          detail: orphanedNotes > 0 ? 'Notes not linked to entities' : 'All notes linked',
-        },
-        {
-          label: 'Dangling References',
-          status: danglingRefs > 0 ? 'error' : 'ok',
-          value: danglingRefs,
-          detail: danglingRefs > 0 ? 'Broken entity references' : 'All references valid',
-        },
-      ]
-
-      setChecks(healthChecks)
-    } catch {
-      // silent
-    } finally {
-      setLoading(false)
+    // Check for timeline contradictions (simple heuristic: events with same date and conflicting locations)
+    let timelineContradictions = 0
+    const eventsByDate: Record<string, { location: string }[]> = {}
+    for (const event of timeline) {
+      if (!event.date) continue
+      const dateKey = event.date.split('T')[0]
+      if (!eventsByDate[dateKey]) eventsByDate[dateKey] = []
+      eventsByDate[dateKey].push({ location: event.location })
     }
-  }, [currentProjectId])
+    for (const [, events] of Object.entries(eventsByDate)) {
+      if (events.length > 1) {
+        const locations = new Set(events.map(e => e.location).filter(Boolean))
+        // If same character appears in different locations on the same date, flag it
+        if (locations.size > 1 && events.length > locations.size) {
+          timelineContradictions++
+        }
+      }
+    }
 
-  useEffect(() => {
-    fetchHealth()
-  }, [fetchHealth])
+    // Dangling references: characters referenced in scenes that don't exist
+    const danglingRefs = 0 // Would need scene data to compute
 
-  if (loading) {
-    return (
-      <div className="p-4 space-y-4">
-        <Skeleton className="h-6 w-32" />
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-16 w-full rounded-lg" />
-        ))}
-      </div>
-    )
-  }
+    return [
+      {
+        label: 'Manuscript',
+        status: 'ok',
+        value: `${totalWords.toLocaleString()} words`,
+        detail: 'Total word count',
+      },
+      {
+        label: 'Characters',
+        status: characters.length > 0 ? 'ok' : 'warning',
+        value: characters.length,
+        detail: characters.length === 0 ? 'No characters defined' : 'Characters defined',
+      },
+      {
+        label: 'Timeline',
+        status: timelineContradictions > 0 ? 'warning' : 'ok',
+        value: timelineContradictions > 0 ? timelineContradictions : '✓',
+        detail: timelineContradictions > 0
+          ? `${timelineContradictions} potential contradiction${timelineContradictions > 1 ? 's' : ''}`
+          : 'No contradictions detected',
+      },
+      {
+        label: 'Unresolved Threads',
+        status: unresolvedNotes > 0 ? 'warning' : 'ok',
+        value: unresolvedNotes,
+        detail: unresolvedNotes > 0 ? 'Notes that need resolution' : 'All notes resolved',
+      },
+      {
+        label: 'Orphaned Notes',
+        status: orphanedNotes > 0 ? 'warning' : 'ok',
+        value: orphanedNotes,
+        detail: orphanedNotes > 0 ? 'Notes not linked to entities' : 'All notes linked',
+      },
+      {
+        label: 'Dangling References',
+        status: danglingRefs > 0 ? 'error' : 'ok',
+        value: danglingRefs,
+        detail: danglingRefs > 0 ? 'Broken entity references' : 'All references valid',
+      },
+    ]
+  }, [store, currentProjectId])
 
-  const okCount = checks.filter((c) => c.status === 'ok').length
-  const warningCount = checks.filter((c) => c.status === 'warning').length
-  const errorCount = checks.filter((c) => c.status === 'error').length
+  const okCount = checks.filter(c => c.status === 'ok').length
+  const warningCount = checks.filter(c => c.status === 'warning').length
+  const errorCount = checks.filter(c => c.status === 'error').length
 
   return (
     <ScrollArea className="h-full">

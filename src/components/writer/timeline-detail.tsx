@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -59,78 +60,60 @@ interface TimelineDetailProps {
 export function TimelineDetail({ eventId: eventIdProp }: TimelineDetailProps = {}) {
   const { selectedTimelineEventId, setRightPanel, setSelectedTimelineEvent } = useWriterStore()
   const effectiveId = eventIdProp ?? selectedTimelineEventId
+  const store = useDataStore()
   const { toast } = useToast()
-  const [event, setEvent] = useState<TimelineEvent | null>(null)
-  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const fetchEvent = useCallback(async () => {
-    if (!effectiveId) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/timeline/${effectiveId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setEvent(data)
+  // Load timeline event directly from data store
+  const rawEvent = effectiveId ? store.getTimelineEvent(effectiveId) : undefined
+  const event: TimelineEvent | null = rawEvent
+    ? {
+        id: rawEvent.id,
+        title: rawEvent.title,
+        date: rawEvent.date ?? '',
+        time: rawEvent.time ?? '',
+        duration: rawEvent.duration ?? '',
+        location: rawEvent.location ?? '',
+        description: rawEvent.description ?? '',
+        characters: rawEvent.characters ?? '[]',
+        objects: rawEvent.objects ?? '[]',
+        cause: rawEvent.cause ?? '',
+        consequence: rawEvent.consequence ?? '',
+        eventType: rawEvent.eventType ?? 'custom',
+        tags: rawEvent.tags ?? '[]',
       }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false)
-    }
-  }, [effectiveId])
+    : null
 
-  useEffect(() => {
-    fetchEvent()
-  }, [fetchEvent])
+  const saveField = (field: string, value: string) => {
+    if (!rawEvent) return
+    setSaving(true)
 
-  const saveField = useCallback(
-    (field: string, value: string) => {
-      if (!event) return
-      setEvent((prev) => (prev ? { ...prev, [field]: value } : prev))
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      store.updateTimelineEvent(rawEvent.id, { [field]: value } as Partial<import('@/store/data-store').TimelineEvent>)
+      setSaving(false)
+      toast({ title: 'Saved', description: 'Event updated' })
+    }, 800)
+  }
 
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(async () => {
-        setSaving(true)
-        try {
-          const res = await fetch(`/api/timeline/${event.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ [field]: value }),
-          })
-          if (res.ok) {
-            toast({ title: 'Saved', description: 'Event updated' })
-          }
-        } catch {
-          // silent
-        } finally {
-          setSaving(false)
-        }
-      }, 800)
-    },
-    [event, toast]
-  )
-
-  const handleDelete = async () => {
-    if (!event) return
-    try {
-      const res = await fetch(`/api/timeline/${event.id}`, { method: 'DELETE' })
-      if (res.ok) {
-        setSelectedTimelineEvent(null)
-        setRightPanel('none')
-        toast({ title: 'Deleted', description: 'Event removed' })
-      }
-    } catch {
-      // silent
-    }
+  const handleDelete = () => {
+    if (!rawEvent) return
+    store.deleteTimelineEvent(rawEvent.id)
+    setSelectedTimelineEvent(null)
+    setRightPanel('none')
+    toast({ title: 'Deleted', description: 'Event removed' })
   }
 
   const parseJsonList = (str: string): string[] => {
     try { return JSON.parse(str || '[]') } catch { return [] }
   }
 
-  if (loading) {
+  if (!effectiveId) {
+    return <div className="p-6 text-center text-sm text-stone-500">Select a timeline event to view details</div>
+  }
+
+  if (!event) {
     return (
       <div className="p-4 space-y-4">
         <Skeleton className="h-6 w-40" />
@@ -143,10 +126,6 @@ export function TimelineDetail({ eventId: eventIdProp }: TimelineDetailProps = {
         ))}
       </div>
     )
-  }
-
-  if (!event) {
-    return <div className="p-6 text-center text-sm text-stone-500">Select a timeline event to view details</div>
   }
 
   const characters = parseJsonList(event.characters)
