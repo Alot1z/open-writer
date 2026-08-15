@@ -139,7 +139,7 @@ export function AnalyticsPanel() {
 
   // Calculate last 7 days data for bar chart
   const last7Days = (() => {
-    const days = []
+    const days: { date: string; label: string; words: number }[] = []
     const today = new Date()
     for (let i = 6; i >= 0; i--) {
       const d = new Date(today)

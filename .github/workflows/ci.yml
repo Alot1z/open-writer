@@ -28,7 +28,7 @@ jobs:
         run: bun run lint
 
   build:
-    name: Build
+    name: Static Export Build
     runs-on: ubuntu-latest
     needs: lint
     steps:
@@ -42,13 +42,17 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Setup Database
-        run: bun run db:push
-
-      - name: Build
+      - name: Build static export
         run: bun run build
         env:
           NEXT_TELEMETRY_DISABLED: 1
+          NEXT_PUBLIC_BASE_PATH: /open-writer
+
+      - name: Verify artifact
+        run: |
+          test -f out/index.html
+          test -d out/_next
+          ! grep -q 'src="/_next' out/index.html
 
   security:
     name: Security Audit

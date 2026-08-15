@@ -69,6 +69,8 @@ interface AISettings {
   provider: "none" | "zai" | "ollama" | "custom"
   model: string
   temperature: number
+  baseUrl: string
+  apiKey: string
   contextScope: string
   permissionLevel: string
 }
@@ -104,9 +106,11 @@ const DEFAULT_APPEARANCE: AppearanceSettings = {
 }
 
 const DEFAULT_AI: AISettings = {
-  provider: "zai",
+  provider: "none",
   model: "default",
   temperature: 0.7,
+  baseUrl: "",
+  apiKey: "",
   contextScope: "current-scene",
   permissionLevel: "suggest",
 }
@@ -466,9 +470,20 @@ export function SettingsDialog() {
                 <Label className="text-xs">AI Provider</Label>
                 <Select
                   value={ai.provider}
-                  onValueChange={(v) =>
-                    setAi({ ...ai, provider: v as AISettings["provider"] })
-                  }
+                  onValueChange={(v) => {
+                    const provider = v as AISettings["provider"]
+                    setAi({
+                      ...ai,
+                      provider,
+                      baseUrl:
+                        ai.baseUrl ||
+                        (provider === "zai"
+                          ? "https://api.z.ai/api/v1"
+                          : provider === "ollama"
+                            ? "http://localhost:11434/v1"
+                            : ""),
+                    })
+                  }}
                 >
                   <SelectTrigger className="text-xs">
                     <SelectValue />
@@ -492,6 +507,31 @@ export function SettingsDialog() {
                       placeholder="default"
                       className="text-xs"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs">API Base URL</Label>
+                    <Input
+                      value={ai.baseUrl}
+                      onChange={(e) => setAi({ ...ai, baseUrl: e.target.value })}
+                      placeholder="https://api.z.ai/api/v1"
+                      className="text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs">API Key (optional, stored only in this browser)</Label>
+                    <Input
+                      type="password"
+                      value={ai.apiKey}
+                      onChange={(e) => setAi({ ...ai, apiKey: e.target.value })}
+                      placeholder="sk-..."
+                      className="text-xs"
+                      autoComplete="off"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Your key never leaves this browser and is only sent to the endpoint above.
+                    </p>
                   </div>
 
                   <div className="space-y-2">

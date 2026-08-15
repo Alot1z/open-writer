@@ -1,99 +1,82 @@
 # Open Writer — Project Status
 
-**Last Updated:** 2025-08-13  
-**Phase:** Core Feature Completion
+**Last Updated:** 2026-08-16
+**Phase:** Local-First Migration Complete (GitHub Pages live)
 
-## Statistics
-- **Source Files:** 134
-- **Writer Components:** 34
-- **API Routes:** 40
-- **Prisma Models:** 15
+## Architecture
 
-## Completed ✅
+Open Writer is now a **fully static, local-first web application**.
 
-### Core Writing
-- [x] Rich text editor (TipTap, 15+ extensions)
-- [x] Project/chapter/scene CRUD
-- [x] Autosave (1.5s debounce)
-- [x] Focus mode (Ctrl+\)
-- [x] Typewriter mode (scroll-to-cursor)
-- [x] Word/character count tracking
-- [x] Chapter/scene tree with context menus
+- `next build` produces `out/` (static export, `output: "export"`)
+- All data lives in **IndexedDB** in the user's browser
+- All 41 former server API routes are re-implemented client-side in
+  `src/lib/local-api/` with identical REST semantics, served through a
+  fetch shim — the UI components were not changed
+- No server, no Prisma, no SQLite on the server, no next-auth
+- TypeScript strict — `tsc --noEmit` passes with **zero errors**
+  (the previous `typescript.ignoreBuildErrors = true` is gone)
 
-### Story Intelligence
-- [x] Characters (full profiles, relationships, tags)
-- [x] Locations (type, atmosphere, hierarchy)
-- [x] Objects (owner, significance, history)
-- [x] World building (10 categories)
-- [x] Timeline (flexible dates, cause/consequence)
-- [x] Relationships (typed edges, strength)
-- [x] Project health (deterministic checks)
-- [x] Notes (categories, priorities, resolved state)
+## Verified ✅ (browser-tested on the static build)
 
-### Writing Productivity
-- [x] Writing sprints (time & word based)
-- [x] Automatic session tracking
-- [x] Goals (daily/weekly/monthly/project)
-- [x] Analytics (words, streak, sessions)
-- [x] Flow widget (compact metrics)
+| Feature | Evidence |
+| ------- | -------- |
+| Project create/list | Browser test: created "The Lighthouse Keeper" |
+| Chapter create | Browser test: "The Storm" with auto-order |
+| Scene create | Browser test: "The Keeper Watches" |
+| Rich text editing + autosave | Typed text via ProseMirror; IndexedDB shows content, wordCount 21 |
+| Auto-version (5-min dedup) | IndexedDB `versions` store: Autosave snapshot created |
+| Persistence across reload | Reload kept project, chapters, scenes, word counts, session |
+| Search | `/api/search?q=Elara` returned the matching scene |
+| Export Markdown/JSON/DOCX/EPUB | All returned valid artifacts; EPUB validated with `unzip` (6 entries, mimetype first) |
+| Backup create/list/get/restore/delete | Checksum created + verified; restore wiped and recreated data |
+| Character CRUD | POST created "Elara Voss", list returned it |
+| Session tracking | Flow widget showed today's words and streak after writing |
+| Static artifact | `out/` has index.html, 404.html, `_next` with basePath-prefixed assets |
+| Console | Zero errors, zero failed requests during testing |
 
-### Export & Import
-- [x] Export: Markdown, JSON, DOCX, EPUB, HTML, TXT
-- [x] Import: Markdown, JSON, plain text
-- [x] Backup with SHA-256 checksum
-- [x] Restore from backup with verification
+## Implemented in this migration
 
-### Version History
-- [x] Auto-version on scene save (5-min dedup)
-- [x] Manual milestone versions
-- [x] Version restore with confirmation
-- [x] Version preview
+- `src/lib/local-api/` — storage (IndexedDB), services, router (fetch
+  shim), exports (incl. self-contained EPUB/ZIP writer), imports, AI client
+- `next.config.ts` — `output: "export"`, configurable `basePath`,
+  `trailingSlash`, unoptimized images, no ignored type errors
+- `.github/workflows/ci.yml` — typecheck (real), lint, static build, artifact
+  validation, security audit
+- `.github/workflows/deploy-pages.yml` — builds `out/` with
+  `NEXT_PUBLIC_BASE_PATH=/open-writer` and deploys the real artifact
+- Settings → AI: provider, model, **API Base URL**, **API Key (browser-only)**,
+  temperature, context scope, permission level. AI disabled by default.
+- Dependencies removed: `prisma`, `@prisma/client`, `next-auth`,
+  `z-ai-web-dev-sdk` (Node-only), `epub-gen-memory`, `sharp`
+- Repo sanitized: removed stale `dev.pid`, debug screenshot, pasted prompt
+  file; `.env` no longer tracked
 
-### AI & Agent
-- [x] Z.ai SDK integration (server-side)
-- [x] AI agent with 6 quick actions
-- [x] Permission levels (read/suggest/write/full)
-- [x] Privacy indicators
-- [x] AI provider abstraction
+## Partially implemented ⚠️
 
-### Navigation & Search
-- [x] Command palette (Ctrl+K, 22+ commands)
-- [x] Global search (cross-entity)
-- [x] 15-panel sidebar navigation
-- [x] Zustand persistence (localStorage)
+| Item | Note |
+| ---- | ---- |
+| Local AI (Ollama) | Configurable; needs a running Ollama server to verify |
+| Z.ai AI chat | Configurable endpoint+key; not verified against a live key (no credentials available) |
+| Comments panel | UI + API exist; not browser-tested end-to-end |
+| Analytics accuracy | Sessions/streak now computed from IndexedDB data; chart types fixed |
 
-### Design
-- [x] Warm stone/amber design system
-- [x] Dark/light/system themes
-- [x] Resizable 3-panel layout
-- [x] Settings dialog (9 tabs)
+## Not started ❌
 
-## In Progress 🔄
-- [ ] Settings → runtime wiring (font/theme/AI)
-- [ ] Comments panel (real UI)
-- [ ] Case-insensitive search (FTS5)
+- PWA / offline service worker (the app is inherently offline-capable —
+  static files + IndexedDB — but no installable PWA manifest yet)
+- Sync / collaboration / cloud
+- Windows desktop build (Tauri)
+- Sandboxed agent execution
+- Continuity engine (deterministic checks beyond project health)
 
-## Not StartedF Started ❌
-- [ ] PWA / Offline support (service worker, IndexedDB)
-- [ ] Sync engine (cross-device)
-- [ ] Collaboration (real-time)
-- [ ] Sharing (public links)
-- [ ] Author website generation
-- [ ] Tauri desktop application
-- [ ] Windows CI + installer
-- [ ] CLI
-- [ ] MCP tool server
-- [ ] OpenSandbox integration
-- [ ] Drag-and-drop reorder
+## Remaining gaps
 
-## Known Issues
-- Search is case-sensitive (SQLite contains)
-- Settings UI exists but font/theme changes not yet applied to runtime
-- Caddy gateway serves loading page (direct port 3000 works)
-
-## Next Priorities
-1. Wire settings → runtime (font, theme, AI provider)
-2. Build real Comments panel
-3. PWA / Offline support
-4. Tauri desktop foundation
-5. Sync engine
+1. **AI live verification** — needs a user-provided key (by design, keys are
+   never committed)
+2. **Large-project performance** — not benchmarked (100 chapters / 1000 scenes)
+3. **Mobile responsiveness** — desktop verified; tablet/mobile not yet audited
+4. **Accessibility audit** — not yet performed with screen readers
+5. **Windows desktop** — out of scope for this migration (see PROJECT-PLAN)
+6. **Import preview** — importer works, but no pre-import preview dialog
+7. **PWA** — manifest/service worker not implemented
+8. **Comments** — API verified via router unit paths; UI flow untested
