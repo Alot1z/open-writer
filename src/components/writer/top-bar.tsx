@@ -19,8 +19,9 @@ import {
   Sun,
   Moon,
   Settings,
-  BookOpen,
+  PenLine,
   ChevronRight,
+  Download,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { cn } from '@/lib/utils'
@@ -42,6 +43,7 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
     setTypewriterMode,
     setSearchOpen,
     setSettingsOpen,
+    setLeftPanel,
   } = useWriterStore()
 
   const { theme, setTheme } = useTheme()
@@ -68,9 +70,15 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
 
   return (
     <header className="flex items-center h-11 px-3 gap-2 border-b border-writer-border bg-writer-surface/60 backdrop-blur-sm select-none">
+      {/* Brand Mark */}
+      <div className="flex items-center justify-center w-7 h-7 rounded-md bg-amber-500 shrink-0">
+        <PenLine className="h-3.5 w-3.5 text-white" />
+      </div>
+
+      <Separator orientation="vertical" className="h-5" />
+
       {/* Project Name */}
       <div className="flex items-center gap-2 min-w-0">
-        <BookOpen className="h-4 w-4 shrink-0 text-writer-accent" />
         {isEditingName ? (
           <Input
             value={nameValue}
@@ -92,7 +100,7 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
               setNameValue(currentProjectName)
               setIsEditingName(true)
             }}
-            className="text-sm font-medium truncate hover:text-writer-accent transition-colors cursor-default"
+            className="text-sm font-semibold truncate hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-default"
           >
             {currentProjectName || 'Untitled'}
           </button>
@@ -115,11 +123,13 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
 
       <div className="flex-1" />
 
-      {/* Word Count */}
-      <Badge variant="secondary" className="text-xs font-normal gap-1.5 h-6">
-        <span className="tabular-nums">{editorWordCount.toLocaleString()}</span>
-        <span className="text-muted-foreground">words</span>
-      </Badge>
+      {/* Word Count - prominent */}
+      <div className="flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/30 rounded-md px-2.5 py-1">
+        <span className="text-xs font-bold text-amber-700 dark:text-amber-400 tabular-nums">
+          {editorWordCount.toLocaleString()}
+        </span>
+        <span className="text-[10px] text-amber-600/70 dark:text-amber-400/70">words</span>
+      </div>
 
       {totalWordCount > 0 && (
         <Badge variant="outline" className="text-xs font-normal gap-1.5 h-6">
@@ -130,13 +140,34 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
 
       <Separator orientation="vertical" className="h-5" />
 
+      {/* Export button - prominent */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+            onClick={() => setLeftPanel('export')}
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Export manuscript</TooltipContent>
+      </Tooltip>
+
+      <Separator orientation="vertical" className="h-5" />
+
       {/* Mode Toggles */}
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
             variant="ghost"
             size="icon"
-            className={cn('h-7 w-7', isTypewriterMode && 'text-writer-accent')}
+            className={cn(
+              'h-7 w-7',
+              isTypewriterMode && 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30',
+            )}
             onClick={() => setTypewriterMode(!isTypewriterMode)}
           >
             <Type className="h-3.5 w-3.5" />
@@ -150,7 +181,10 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
           <Button
             variant="ghost"
             size="icon"
-            className={cn('h-7 w-7', isFocusMode && 'text-writer-accent')}
+            className={cn(
+              'h-7 w-7',
+              isFocusMode && 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30',
+            )}
             onClick={() => setFocusMode(!isFocusMode)}
           >
             {isFocusMode ? (
