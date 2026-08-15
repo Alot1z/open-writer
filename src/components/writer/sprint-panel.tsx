@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { useWriterStore, SprintType } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
@@ -112,25 +113,16 @@ export function SprintPanel() {
     ? Math.max(0, sprint.targetDuration - sprint.elapsedSeconds)
     : 0
 
-  // Save session to API
-  const handleSaveSession = async () => {
+  // Save session to data store
+  const store = useDataStore()
+  const handleSaveSession = () => {
     if (!currentProjectId) return
     try {
-      await fetch('/api/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId: currentProjectId,
-          wordsWritten: sprint.wordsWritten,
-          duration: sprint.elapsedSeconds,
-          date: new Date().toISOString().split('T')[0],
-          metadata: JSON.stringify({
-            type: sprint.type,
-            targetDuration: sprint.targetDuration,
-            targetWords: sprint.targetWords,
-            wpm: currentWPM,
-          }),
-        }),
+      store.addSession({
+        projectId: currentProjectId,
+        wordsWritten: sprint.wordsWritten,
+        duration: sprint.elapsedSeconds,
+        date: new Date().toISOString().split('T')[0],
       })
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)

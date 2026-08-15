@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -62,78 +63,55 @@ interface WorldDetailProps {
 export function WorldDetail({ worldId: worldIdProp }: WorldDetailProps = {}) {
   const { selectedWorldId, setRightPanel, setSelectedWorld } = useWriterStore()
   const effectiveId = worldIdProp ?? selectedWorldId
+  const store = useDataStore()
   const { toast } = useToast()
-  const [element, setElement] = useState<WorldElement | null>(null)
-  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const fetchElement = useCallback(async () => {
-    if (!effectiveId) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/world/${effectiveId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setElement(data)
+  // Load world element directly from data store
+  const rawElement = effectiveId ? store.getWorldElement(effectiveId) : undefined
+  const element: WorldElement | null = rawElement
+    ? {
+        id: rawElement.id,
+        name: rawElement.name,
+        category: rawElement.category,
+        description: rawElement.description ?? '',
+        parent: rawElement.parent ?? '',
+        rules: rawElement.rules ?? '',
+        history: rawElement.history ?? '',
+        tags: rawElement.tags ?? '[]',
       }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false)
-    }
-  }, [effectiveId])
+    : null
 
-  useEffect(() => {
-    fetchElement()
-  }, [fetchElement])
+  const saveField = (field: string, value: string) => {
+    if (!rawElement) return
+    setSaving(true)
 
-  const saveField = useCallback(
-    (field: string, value: string) => {
-      if (!element) return
-      setElement((prev) => (prev ? { ...prev, [field]: value } : prev))
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      store.updateWorldElement(rawElement.id, { [field]: value } as Partial<import('@/store/data-store').WorldElement>)
+      setSaving(false)
+      toast({ title: 'Saved', description: 'World element updated' })
+    }, 800)
+  }
 
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(async () => {
-        setSaving(true)
-        try {
-          const res = await fetch(`/api/world/${element.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ [field]: value }),
-          })
-          if (res.ok) {
-            toast({ title: 'Saved', description: 'World element updated' })
-          }
-        } catch {
-          // silent
-        } finally {
-          setSaving(false)
-        }
-      }, 800)
-    },
-    [element, toast]
-  )
-
-  const handleDelete = async () => {
-    if (!element) return
-    try {
-      const res = await fetch(`/api/world/${element.id}`, { method: 'DELETE' })
-      if (res.ok) {
-        setSelectedWorld(null)
-        setRightPanel('none')
-        toast({ title: 'Deleted', description: 'World element removed' })
-      }
-    } catch {
-      // silent
-    }
+  const handleDelete = () => {
+    if (!rawElement) return
+    store.deleteWorldElement(rawElement.id)
+    setSelectedWorld(null)
+    setRightPanel('none')
+    toast({ title: 'Deleted', description: 'World element removed' })
   }
 
   const parseTags = (tagsStr: string): string[] => {
     try { return JSON.parse(tagsStr || '[]') } catch { return [] }
   }
 
-  if (loading) {
+  if (!effectiveId) {
+    return <div className="p-6 text-center text-sm text-stone-500">Select a world element to view details</div>
+  }
+
+  if (!element) {
     return (
       <div className="p-4 space-y-4">
         <Skeleton className="h-6 w-40" />
@@ -146,10 +124,6 @@ export function WorldDetail({ worldId: worldIdProp }: WorldDetailProps = {}) {
         ))}
       </div>
     )
-  }
-
-  if (!element) {
-    return <div className="p-6 text-center text-sm text-stone-500">Select a world element to view details</div>
   }
 
   const tags = parseTags(element.tags)

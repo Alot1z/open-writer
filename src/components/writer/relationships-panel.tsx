@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useMemo, useState } from "react"
 import { useWriterStore } from "@/store/writer-store"
+import { useDataStore } from "@/store/data-store"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 import {
   Select,
   SelectContent,
@@ -36,22 +36,8 @@ import {
   MapPin,
   Package,
   Globe,
-  Loader2,
   X,
 } from "lucide-react"
-
-interface Relationship {
-  id: string
-  sourceId: string
-  sourceType: string
-  sourceName: string
-  targetId: string
-  targetType: string
-  targetName: string
-  type: string
-  description: string
-  strength: number
-}
 
 const RELATIONSHIP_COLORS: Record<string, { bg: string; text: string; icon: React.ElementType }> = {
   loves: { bg: "bg-rose-100 dark:bg-rose-950/30", text: "text-rose-700 dark:text-rose-300", icon: Heart },
@@ -95,9 +81,8 @@ const RELATIONSHIP_TYPES = [
 
 export function RelationshipsPanel() {
   const { currentProjectId } = useWriterStore()
+  const store = useDataStore()
 
-  const [relationships, setRelationships] = useState<Relationship[]>([])
-  const [isLoading, setIsLoading] = useState(false)
   const [searchFilter, setSearchFilter] = useState("")
   const [typeFilter, setTypeFilter] = useState<string>("all")
   const [entityFilter, setEntityFilter] = useState<string>("all")
@@ -112,80 +97,72 @@ export function RelationshipsPanel() {
     strength: 5,
   })
 
-  const fetchRelationships = useCallback(async () => {
-    if (!currentProjectId) return
-    setIsLoading(true)
-    try {
-      const res = await fetch(
-        `/api/relationships?projectId=${currentProjectId}`
-      )
-      if (res.ok) {
-        const data = await res.json()
-        setRelationships(
-          data.map((r: Record<string, unknown>) => ({
-            id: r.id as string,
-            sourceId: r.sourceId as string,
-            sourceType: r.sourceType as string,
-            sourceName: `Entity ${(r.sourceId as string).slice(0, 6)}`,
-            targetId: r.targetId as string,
-            targetType: r.targetType as string,
-            targetName: `Entity ${(r.targetId as string).slice(0, 6)}`,
-            type: r.type as string,
-            description: (r.description || "") as string,
-            strength: (r.strength || 0) as number,
-          }))
-        )
+  // ─── Helper to resolve entity name ───────────
+
+  const getEntityName = (id: string, type: string): string => {
+    switch (type) {
+      case 'character': {
+        const c = store.getCharacter(id)
+        return c?.name || `Character ${id.slice(0, 6)}`
       }
-    } catch (error) {
-      console.error("Failed to fetch relationships:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [currentProjectId])
-
-  useEffect(() => {
-    fetchRelationships()
-  }, [fetchRelationships])
-
-  const handleAddRelationship = async () => {
-    if (!currentProjectId || !newRel.sourceName || !newRel.targetName) return
-    try {
-      await fetch("/api/relationships", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          projectId: currentProjectId,
-          sourceId: newRel.sourceName,
-          sourceType: newRel.sourceType,
-          targetId: newRel.targetName,
-          targetType: newRel.targetType,
-          type: newRel.type,
-          description: newRel.description,
-          strength: newRel.strength,
-        }),
-      })
-      setShowAddDialog(false)
-      setNewRel({
-        sourceName: "",
-        sourceType: "character",
-        targetName: "",
-        targetType: "character",
-        type: "knows",
-        description: "",
-        strength: 5,
-      })
-      fetchRelationships()
-    } catch (error) {
-      console.error("Failed to add relationship:", error)
+      case 'location': {
+        const l = store.getLocation(id)
+        return l?.name || `Location ${id.slice(0, 6)}`
+      }
+      case 'object': {
+        const o = store.getObject(id)
+        return o?.name || `Object ${id.slice(0, 6)}`
+      }
+      case 'worldElement': {
+        const w = store.getWorldElement(id)
+        return w?.name || `World ${id.slice(0, 6)}`
+      }
+      default:
+        return `Entity ${id.slice(0, 6)}`
     }
   }
 
-  const filteredRelationships = relationships.filter((r) => {
+  // ─── Derived relationships from store ────────
+
+  const relationships = useMemo(() => {
+    if (!currentProjectId) return []
+    return store.getRelationshipsByProject(currentProjectId)
+  }, [store, currentProjectId])
+
+  // ─── Add relationship ─────────────────────────
+
+  const handleAddRelationship = () => {
+    if (!currentProjectId || !newRel.sourceName || !newRel.targetName) return
+    store.addRelationship({
+      projectId: currentProjectId,
+      sourceId: newRel.sourceName,
+      sourceType: newRel.sourceType,
+      targetId: newRel.targetName,
+      targetType: newRel.targetType,
+      type: newRel.type,
+      description: newRel.description,
+      strength: newRel.strength,
+    })
+    setShowAddDialog(false)
+    setNewRel({
+      sourceName: "",
+      sourceType: "character",
+      targetName: "",
+      targetType: "character",
+      type: "knows",
+      description: "",
+      strength: 5,
+    })
+  }
+
+  const filteredRelationships = relationships.filter(r => {
+    const sourceName = getEntityName(r.sourceId, r.sourceType)
+    const targetName = getEntityName(r.targetId, r.targetType)
     if (searchFilter) {
       const q = searchFilter.toLowerCase()
       if (
-        !r.sourceName.toLowerCase().includes(q) &&
-        !r.targetName.toLowerCase().includes(q) &&
+        !sourceName.toLowerCase().includes(q) &&
+        !targetName.toLowerCase().includes(q) &&
         !r.type.toLowerCase().includes(q) &&
         !r.description.toLowerCase().includes(q)
       ) {
@@ -241,7 +218,7 @@ export function RelationshipsPanel() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
-              {RELATIONSHIP_TYPES.map((t) => (
+              {RELATIONSHIP_TYPES.map(t => (
                 <SelectItem key={t} value={t}>
                   {t}
                 </SelectItem>
@@ -265,11 +242,7 @@ export function RelationshipsPanel() {
 
       {/* Content */}
       <ScrollArea className="flex-1">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="size-5 animate-spin text-muted-foreground" />
-          </div>
-        ) : filteredRelationships.length === 0 ? (
+        {filteredRelationships.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <Heart className="size-8 text-muted-foreground/30 mb-2" />
             <p className="text-xs text-muted-foreground">
@@ -280,7 +253,7 @@ export function RelationshipsPanel() {
           </div>
         ) : (
           <div className="p-3 space-y-2">
-            {filteredRelationships.map((rel) => {
+            {filteredRelationships.map(rel => {
               const style =
                 RELATIONSHIP_COLORS[rel.type] || DEFAULT_REL_STYLE
               const RelIcon = style.icon
@@ -288,6 +261,8 @@ export function RelationshipsPanel() {
                 ENTITY_ICONS[rel.sourceType] || ArrowRight
               const TargetIcon =
                 ENTITY_ICONS[rel.targetType] || ArrowRight
+              const sourceName = getEntityName(rel.sourceId, rel.sourceType)
+              const targetName = getEntityName(rel.targetId, rel.targetType)
 
               return (
                 <div
@@ -299,7 +274,7 @@ export function RelationshipsPanel() {
                     <div className="flex items-center gap-1 min-w-0">
                       <SourceIcon className="size-3 text-muted-foreground shrink-0" />
                       <span className="truncate font-medium">
-                        {rel.sourceName}
+                        {sourceName}
                       </span>
                     </div>
 
@@ -313,7 +288,7 @@ export function RelationshipsPanel() {
                     <div className="flex items-center gap-1 min-w-0">
                       <TargetIcon className="size-3 text-muted-foreground shrink-0" />
                       <span className="truncate font-medium">
-                        {rel.targetName}
+                        {targetName}
                       </span>
                     </div>
                   </div>
@@ -401,7 +376,7 @@ export function RelationshipsPanel() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {RELATIONSHIP_TYPES.map((t) => (
+                  {RELATIONSHIP_TYPES.map(t => (
                     <SelectItem key={t} value={t}>
                       {t}
                     </SelectItem>

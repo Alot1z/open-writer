@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -10,7 +11,6 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
@@ -69,73 +69,61 @@ interface CharacterDetailProps {
 export function CharacterDetail({ characterId: characterIdProp }: CharacterDetailProps = {}) {
   const { selectedCharacterId, setRightPanel, setSelectedCharacter, currentProjectId } = useWriterStore()
   const effectiveId = characterIdProp ?? selectedCharacterId
+  const store = useDataStore()
   const { toast } = useToast()
-  const [character, setCharacter] = useState<Character | null>(null)
-  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const fetchCharacter = useCallback(async () => {
-    if (!effectiveId) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/characters/${effectiveId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setCharacter(data)
+  // Load character directly from data store
+  const rawCharacter = effectiveId ? store.getCharacter(effectiveId) : undefined
+  const character: Character | null = rawCharacter
+    ? {
+        id: rawCharacter.id,
+        name: rawCharacter.name,
+        role: rawCharacter.role,
+        description: rawCharacter.description ?? '',
+        age: rawCharacter.age ?? '',
+        occupation: rawCharacter.occupation ?? '',
+        personality: rawCharacter.personality ?? '',
+        appearance: rawCharacter.appearance ?? '',
+        backstory: rawCharacter.backstory ?? '',
+        motivation: rawCharacter.motivation ?? '',
+        goals: rawCharacter.goals ?? '',
+        fears: rawCharacter.fears ?? '',
+        tags: rawCharacter.tags ?? '[]',
+        relationships: store.relationships
+          .filter(r => r.sourceId === rawCharacter.id || r.targetId === rawCharacter.id)
+          .map(r => ({
+            id: r.id,
+            sourceId: r.sourceId,
+            sourceType: r.sourceType,
+            targetId: r.targetId,
+            targetType: r.targetType,
+            type: r.type,
+            description: r.description,
+            strength: 1,
+          })),
       }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false)
-    }
-  }, [effectiveId])
+    : null
 
-  useEffect(() => {
-    fetchCharacter()
-  }, [fetchCharacter])
+  const saveField = (field: string, value: string) => {
+    if (!rawCharacter) return
+    setSaving(true)
 
-  const saveField = useCallback(
-    (field: string, value: string) => {
-      if (!character) return
-      setCharacter((prev) => (prev ? { ...prev, [field]: value } : prev))
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      store.updateCharacter(rawCharacter.id, { [field]: value } as Partial<import('@/store/data-store').Character>)
+      setSaving(false)
+      toast({ title: 'Saved', description: 'Character updated' })
+    }, 800)
+  }
 
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(async () => {
-        setSaving(true)
-        try {
-          const res = await fetch(`/api/characters/${character.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ [field]: value }),
-          })
-          if (res.ok) {
-            toast({ title: 'Saved', description: 'Character updated' })
-          }
-        } catch {
-          // silent
-        } finally {
-          setSaving(false)
-        }
-      }, 800)
-    },
-    [character, toast]
-  )
-
-  const handleDelete = async () => {
-    if (!character) return
-    try {
-      const res = await fetch(`/api/characters/${character.id}`, {
-        method: 'DELETE',
-      })
-      if (res.ok) {
-        setSelectedCharacter(null)
-        setRightPanel('none')
-        toast({ title: 'Deleted', description: 'Character removed' })
-      }
-    } catch {
-      // silent
-    }
+  const handleDelete = () => {
+    if (!rawCharacter) return
+    store.deleteCharacter(rawCharacter.id)
+    setSelectedCharacter(null)
+    setRightPanel('none')
+    toast({ title: 'Deleted', description: 'Character removed' })
   }
 
   const parseTags = (tagsStr: string): string[] => {
@@ -146,7 +134,15 @@ export function CharacterDetail({ characterId: characterIdProp }: CharacterDetai
     }
   }
 
-  if (loading) {
+  if (!effectiveId) {
+    return (
+      <div className="p-6 text-center text-sm text-stone-500">
+        Select a character to view details
+      </div>
+    )
+  }
+
+  if (!character) {
     return (
       <div className="p-4 space-y-4">
         <Skeleton className="h-6 w-40" />
@@ -158,14 +154,6 @@ export function CharacterDetail({ characterId: characterIdProp }: CharacterDetai
             <Skeleton className="h-8 w-full" />
           </div>
         ))}
-      </div>
-    )
-  }
-
-  if (!character) {
-    return (
-      <div className="p-6 text-center text-sm text-stone-500">
-        Select a character to view details
       </div>
     )
   }

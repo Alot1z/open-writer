@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -52,78 +53,56 @@ interface LocationDetailProps {
 export function LocationDetail({ locationId: locationIdProp }: LocationDetailProps = {}) {
   const { selectedLocationId, setRightPanel, setSelectedLocation } = useWriterStore()
   const effectiveId = locationIdProp ?? selectedLocationId
+  const store = useDataStore()
   const { toast } = useToast()
-  const [location, setLocation] = useState<Location | null>(null)
-  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const fetchLocation = useCallback(async () => {
-    if (!effectiveId) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/locations/${effectiveId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setLocation(data)
+  // Load location directly from data store
+  const rawLocation = effectiveId ? store.getLocation(effectiveId) : undefined
+  const location: Location | null = rawLocation
+    ? {
+        id: rawLocation.id,
+        name: rawLocation.name,
+        type: rawLocation.type,
+        description: rawLocation.description ?? '',
+        atmosphere: rawLocation.atmosphere ?? '',
+        history: rawLocation.history ?? '',
+        features: rawLocation.features ?? '',
+        parentLocationId: rawLocation.parentLocationId ?? '',
+        tags: rawLocation.tags ?? '[]',
       }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false)
-    }
-  }, [effectiveId])
+    : null
 
-  useEffect(() => {
-    fetchLocation()
-  }, [fetchLocation])
+  const saveField = (field: string, value: string) => {
+    if (!rawLocation) return
+    setSaving(true)
 
-  const saveField = useCallback(
-    (field: string, value: string) => {
-      if (!location) return
-      setLocation((prev) => (prev ? { ...prev, [field]: value } : prev))
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      store.updateLocation(rawLocation.id, { [field]: value } as Partial<import('@/store/data-store').Location>)
+      setSaving(false)
+      toast({ title: 'Saved', description: 'Location updated' })
+    }, 800)
+  }
 
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(async () => {
-        setSaving(true)
-        try {
-          const res = await fetch(`/api/locations/${location.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ [field]: value }),
-          })
-          if (res.ok) {
-            toast({ title: 'Saved', description: 'Location updated' })
-          }
-        } catch {
-          // silent
-        } finally {
-          setSaving(false)
-        }
-      }, 800)
-    },
-    [location, toast]
-  )
-
-  const handleDelete = async () => {
-    if (!location) return
-    try {
-      const res = await fetch(`/api/locations/${location.id}`, { method: 'DELETE' })
-      if (res.ok) {
-        setSelectedLocation(null)
-        setRightPanel('none')
-        toast({ title: 'Deleted', description: 'Location removed' })
-      }
-    } catch {
-      // silent
-    }
+  const handleDelete = () => {
+    if (!rawLocation) return
+    store.deleteLocation(rawLocation.id)
+    setSelectedLocation(null)
+    setRightPanel('none')
+    toast({ title: 'Deleted', description: 'Location removed' })
   }
 
   const parseTags = (tagsStr: string): string[] => {
     try { return JSON.parse(tagsStr || '[]') } catch { return [] }
   }
 
-  if (loading) {
+  if (!effectiveId) {
+    return <div className="p-6 text-center text-sm text-stone-500">Select a location to view details</div>
+  }
+
+  if (!location) {
     return (
       <div className="p-4 space-y-4">
         <Skeleton className="h-6 w-40" />
@@ -136,10 +115,6 @@ export function LocationDetail({ locationId: locationIdProp }: LocationDetailPro
         ))}
       </div>
     )
-  }
-
-  if (!location) {
-    return <div className="p-6 text-center text-sm text-stone-500">Select a location to view details</div>
   }
 
   const tags = parseTags(location.tags)

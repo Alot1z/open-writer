@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -17,7 +18,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
- DialogTitle,
+  DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
@@ -26,28 +27,10 @@ import {
   Plus,
   FileText,
   FolderOpen,
-  MoreHorizontal,
   Trash2,
   Pencil,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-interface Scene {
-  id: string
-  title: string
-  content: string
-  order: number
-  wordCount: number
-  chapterId: string
-}
-
-interface Chapter {
-  id: string
-  title: string
-  order: number
-  scenes: Scene[]
-  projectId: string
-}
 
 export function ChapterTree() {
   const {
@@ -58,9 +41,9 @@ export function ChapterTree() {
     setCurrentScene,
   } = useWriterStore()
 
-  const [chapters, setChapters] = useState<Chapter[]>([])
+  const store = useDataStore()
+
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set())
-  const [loading, setLoading] = useState(true)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [addSceneDialogOpen, setAddSceneDialogOpen] = useState(false)
   const [renameDialogOpen, setRenameDialogOpen] = useState(false)
@@ -68,42 +51,29 @@ export function ChapterTree() {
   const [targetChapterId, setTargetChapterId] = useState<string | null>(null)
   const [renameTarget, setRenameTarget] = useState<{ type: 'chapter' | 'scene'; id: string; currentTitle: string } | null>(null)
 
-  // Fetch chapters
-  const fetchChapters = useCallback(async () => {
-    if (!currentProjectId) return
-    try {
-      setLoading(true)
-      const res = await fetch(`/api/chapters?projectId=${currentProjectId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setChapters(data)
-        // Auto-expand first chapter
-        if (data.length > 0 && expandedChapters.size === 0) {
-          setExpandedChapters(new Set([data[0].id]))
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch chapters:', err)
-    } finally {
-      setLoading(false)
+  // Derive chapters with their scenes from the data store
+  const chapters = useMemo(() => {
+    if (!currentProjectId) return []
+    const chapterList = store.getChaptersByProject(currentProjectId)
+    return chapterList.map(ch => ({
+      ...ch,
+      scenes: store.getScenesByChapter(ch.id),
+    }))
+  }, [currentProjectId, store])
+
+  // Compute expanded chapters: auto-expand first chapter and the currently selected chapter
+  const effectiveExpanded = useMemo(() => {
+    const set = new Set(expandedChapters)
+    // Auto-expand first chapter
+    if (chapters.length > 0) {
+      set.add(chapters[0].id)
     }
-  }, [currentProjectId, expandedChapters.size])
-
-  useEffect(() => {
-    fetchChapters()
-  }, [fetchChapters])
-
-  // Auto-expand when chapter is selected
-  useEffect(() => {
+    // Always expand the currently selected chapter
     if (currentChapterId) {
-      setExpandedChapters((prev) => {
-        if (prev.has(currentChapterId)) return prev
-        const next = new Set(prev)
-        next.add(currentChapterId)
-        return next
-      })
+      set.add(currentChapterId)
     }
-  }, [currentChapterId])
+    return set
+  }, [expandedChapters, chapters, currentChapterId])
 
   const toggleExpand = (chapterId: string) => {
     setExpandedChapters((prev) => {
@@ -115,140 +85,65 @@ export function ChapterTree() {
   }
 
   // Add chapter
-  const handleAddChapter = async () => {
+  const handleAddChapter = () => {
     if (!currentProjectId || !newItemTitle.trim()) return
-    try {
-      const res = await fetch('/api/chapters', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId: currentProjectId, title: newItemTitle.trim() }),
-      })
-      if (res.ok) {
-        const chapter = await res.json()
-        setChapters((prev) => [...prev, chapter])
-        setExpandedChapters((prev) => new Set([...prev, chapter.id]))
-        setNewItemTitle('')
-        setAddDialogOpen(false)
-      }
-    } catch (err) {
-      console.error('Failed to add chapter:', err)
-    }
+    const chapter = store.addChapter({
+      projectId: currentProjectId,
+      title: newItemTitle.trim(),
+      order: store.getChaptersByProject(currentProjectId).length,
+    })
+    setExpandedChapters((prev) => new Set([...prev, chapter.id]))
+    setNewItemTitle('')
+    setAddDialogOpen(false)
   }
 
   // Add scene
-  const handleAddScene = async () => {
-    if (!targetChapterId || !newItemTitle.trim()) return
-    try {
-      const res = await fetch('/api/scenes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chapterId: targetChapterId, title: newItemTitle.trim() }),
-      })
-      if (res.ok) {
-        const scene = await res.json()
-        setChapters((prev) =>
-          prev.map((ch) =>
-            ch.id === targetChapterId
-              ? { ...ch, scenes: [...ch.scenes, scene] }
-              : ch
-          )
-        )
-        setNewItemTitle('')
-        setAddSceneDialogOpen(false)
-        setTargetChapterId(null)
-      }
-    } catch (err) {
-      console.error('Failed to add scene:', err)
-    }
+  const handleAddScene = () => {
+    if (!targetChapterId || !newItemTitle.trim() || !currentProjectId) return
+    store.addScene({
+      projectId: currentProjectId,
+      chapterId: targetChapterId,
+      title: newItemTitle.trim(),
+      content: '',
+      order: store.getScenesByChapter(targetChapterId).length,
+      wordCount: 0,
+    })
+    setNewItemTitle('')
+    setAddSceneDialogOpen(false)
+    setTargetChapterId(null)
   }
 
   // Delete chapter
-  const handleDeleteChapter = async (chapterId: string) => {
-    try {
-      const res = await fetch(`/api/chapters/${chapterId}`, { method: 'DELETE' })
-      if (res.ok) {
-        setChapters((prev) => prev.filter((ch) => ch.id !== chapterId))
-        if (currentChapterId === chapterId) {
-          setCurrentChapter(null)
-        }
-      }
-    } catch (err) {
-      console.error('Failed to delete chapter:', err)
+  const handleDeleteChapter = (chapterId: string) => {
+    store.deleteChapter(chapterId)
+    if (currentChapterId === chapterId) {
+      setCurrentChapter(null)
     }
   }
 
   // Delete scene
-  const handleDeleteScene = async (sceneId: string, chapterId: string) => {
-    try {
-      const res = await fetch(`/api/scenes/${sceneId}`, { method: 'DELETE' })
-      if (res.ok) {
-        setChapters((prev) =>
-          prev.map((ch) =>
-            ch.id === chapterId
-              ? { ...ch, scenes: ch.scenes.filter((s) => s.id !== sceneId) }
-              : ch
-          )
-        )
-        if (currentSceneId === sceneId) {
-          setCurrentScene(null)
-        }
-      }
-    } catch (err) {
-      console.error('Failed to delete scene:', err)
+  const handleDeleteScene = (sceneId: string) => {
+    store.deleteScene(sceneId)
+    if (currentSceneId === sceneId) {
+      setCurrentScene(null)
     }
   }
 
   // Rename
-  const handleRename = async () => {
+  const handleRename = () => {
     if (!renameTarget || !newItemTitle.trim()) return
-    try {
-      const endpoint =
-        renameTarget.type === 'chapter'
-          ? `/api/chapters/${renameTarget.id}`
-          : `/api/scenes/${renameTarget.id}`
-      const res = await fetch(endpoint, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: newItemTitle.trim() }),
-      })
-      if (res.ok) {
-        if (renameTarget.type === 'chapter') {
-          setChapters((prev) =>
-            prev.map((ch) =>
-              ch.id === renameTarget.id ? { ...ch, title: newItemTitle.trim() } : ch
-            )
-          )
-        } else {
-          setChapters((prev) =>
-            prev.map((ch) => ({
-              ...ch,
-              scenes: ch.scenes.map((s) =>
-                s.id === renameTarget.id ? { ...s, title: newItemTitle.trim() } : s
-              ),
-            }))
-          )
-        }
-        setRenameTarget(null)
-        setRenameDialogOpen(false)
-        setNewItemTitle('')
-      }
-    } catch (err) {
-      console.error('Failed to rename:', err)
+    if (renameTarget.type === 'chapter') {
+      store.updateChapter(renameTarget.id, { title: newItemTitle.trim() })
+    } else {
+      store.updateScene(renameTarget.id, { title: newItemTitle.trim() })
     }
+    setRenameTarget(null)
+    setRenameDialogOpen(false)
+    setNewItemTitle('')
   }
 
-  const getChapterWordCount = (chapter: Chapter) =>
+  const getChapterWordCount = (chapter: { scenes: { wordCount: number }[] }) =>
     chapter.scenes.reduce((sum, s) => sum + s.wordCount, 0)
-
-  if (loading) {
-    return (
-      <div className="p-4 space-y-2">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-8 bg-muted/30 rounded animate-pulse" />
-        ))}
-      </div>
-    )
-  }
 
   return (
     <div className="flex flex-col h-full">
@@ -260,7 +155,7 @@ export function ChapterTree() {
             </div>
           )}
           {chapters.map((chapter) => {
-            const isExpanded = expandedChapters.has(chapter.id)
+            const isExpanded = effectiveExpanded.has(chapter.id)
             const isActiveChapter = currentChapterId === chapter.id
             const chapterWords = getChapterWordCount(chapter)
 
@@ -364,7 +259,7 @@ export function ChapterTree() {
                             <ContextMenuSeparator />
                             <ContextMenuItem
                               className="text-destructive"
-                              onClick={() => handleDeleteScene(scene.id, chapter.id)}
+                              onClick={() => handleDeleteScene(scene.id)}
                             >
                               <Trash2 className="h-3.5 w-3.5 mr-2" />
                               Delete

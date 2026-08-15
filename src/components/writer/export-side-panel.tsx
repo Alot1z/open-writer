@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useExport } from '@/lib/api-client'
 import { useToast } from '@/hooks/use-toast'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -43,10 +44,6 @@ const FORMAT_OPTIONS: FormatOption[] = [
   { value: 'txt', label: 'TXT', extension: '.txt', description: 'Plain text export', icon: FileType },
 ]
 
-// Formats that use GET vs POST (matches existing export-panel.tsx pattern)
-const GET_FORMATS: ExportFormat[] = ['markdown', 'json', 'html', 'txt']
-const POST_FORMATS: ExportFormat[] = ['docx', 'epub']
-
 const EXTENSION_MAP: Record<ExportFormat, string> = {
   markdown: 'md',
   json: 'json',
@@ -77,6 +74,7 @@ function downloadBlob(blob: Blob, filename: string) {
 
 export function ExportSidePanel() {
   const { currentProjectId, currentProjectName } = useWriterStore()
+  const exportHelper = useExport()
   const { toast } = useToast()
 
   // Per-format export status
@@ -100,7 +98,7 @@ export function ExportSidePanel() {
     }, 2500)
   }
 
-  const handleExport = async (format: ExportFormat) => {
+  const handleExport = (format: ExportFormat) => {
     if (!currentProjectId) {
       toast({
         title: 'No project selected',
@@ -114,24 +112,48 @@ export function ExportSidePanel() {
 
     try {
       const projectSlug = currentProjectName.replace(/[^a-zA-Z0-9]/g, '_') || 'project'
-      let response: Response
+      let content: string
+      let mimeType: string
 
-      if (GET_FORMATS.includes(format)) {
-        response = await fetch(`/api/export/${format}?projectId=${currentProjectId}`)
-      } else {
-        response = await fetch(`/api/export/${format}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ projectId: currentProjectId }),
-        })
+      switch (format) {
+        case 'markdown':
+          content = exportHelper.exportMarkdown(currentProjectId)
+          mimeType = 'text/markdown'
+          break
+        case 'json':
+          content = exportHelper.exportJSON(currentProjectId)
+          mimeType = 'application/json'
+          break
+        case 'txt':
+          content = exportHelper.exportTxt(currentProjectId)
+          mimeType = 'text/plain'
+          break
+        case 'html': {
+          // Build HTML from markdown-like content
+          const md = exportHelper.exportMarkdown(currentProjectId)
+          content = `<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<title>${currentProjectName}</title>\n<style>body{font-family:Georgia,serif;max-width:800px;margin:0 auto;padding:2rem;line-height:1.8;}h1,h2,h3{margin-top:1.5em;}</style>\n</head>\n<body>\n${md.replace(/^### (.+)$/gm, '<h3>$1</h3>').replace(/^## (.+)$/gm, '<h2>$1</h2>').replace(/^# (.+)$/gm, '<h1>$1</h1>').replace(/^---$/gm, '<hr>').replace(/\n\n/g, '</p>\n<p>').replace(/\n/g, '<br>\n')}\n</body>\n</html>`
+          mimeType = 'text/html'
+          break
+        }
+        case 'docx': {
+          // DOCX not natively supported in client — export as HTML with .doc extension
+          const md = exportHelper.exportMarkdown(currentProjectId)
+          content = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">\n<head><meta charset="UTF-8"><title>${currentProjectName}</title></head>\n<body>\n${md.replace(/^### (.+)$/gm, '<h3>$1</h3>').replace(/^## (.+)$/gm, '<h2>$1</h2>').replace(/^# (.+)$/gm, '<h1>$1</h1>').replace(/^---$/gm, '<hr>').replace(/\n\n/g, '</p>\n<p>').replace(/\n/g, '<br>\n')}\n</body>\n</html>`
+          mimeType = 'application/vnd.ms-word'
+          break
+        }
+        case 'epub': {
+          // EPUB not natively supported — export as XHTML-like content
+          const md = exportHelper.exportMarkdown(currentProjectId)
+          content = `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml">\n<head><title>${currentProjectName}</title><style>body{font-family:serif;}</style></head>\n<body>\n${md.replace(/^### (.+)$/gm, '<h3>$1</h3>').replace(/^## (.+)$/gm, '<h2>$1</h2>').replace(/^# (.+)$/gm, '<h1>$1</h1>').replace(/^---$/gm, '<hr>').replace(/\n\n/g, '</p>\n<p>').replace(/\n/g, '<br>\n')}\n</body>\n</html>`
+          mimeType = 'application/xhtml+xml'
+          break
+        }
+        default:
+          throw new Error(`Unsupported format: ${format}`)
       }
 
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({ error: 'Export failed' }))
-        throw new Error(err.error || 'Export failed')
-      }
-
-      const blob = await response.blob()
+      const blob = new Blob([content], { type: mimeType })
       downloadBlob(blob, `${projectSlug}.${EXTENSION_MAP[format]}`)
 
       setStatusMap((prev) => ({ ...prev, [format]: 'success' }))
@@ -248,12 +270,8 @@ export function ExportSidePanel() {
         className="w-full text-xs gap-2 bg-stone-700 hover:bg-stone-800 dark:bg-stone-600 dark:hover:bg-stone-500"
         size="sm"
       >
-        {statusMap.markdown === 'exporting' ? (
-          <Loader2 className="size-3.5 animate-spin" />
-        ) : (
-          <Download className="size-3.5" />
-        )}
-        {statusMap.markdown === 'exporting' ? 'Exporting...' : 'Quick Export as Markdown'}
+        <Download className="size-3.5" />
+        Quick Export as Markdown
       </Button>
 
       {!currentProjectId && (

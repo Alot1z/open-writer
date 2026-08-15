@@ -1,10 +1,10 @@
 'use client'
 
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useState } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -23,20 +23,10 @@ import {
   ToggleLeft,
   ToggleRight,
   Calendar,
-  BookOpen,
   Edit3,
   Check,
   X,
 } from 'lucide-react'
-
-interface Goal {
-  id: string
-  type: string
-  target: number
-  current: number
-  deadline: string
-  active: boolean
-}
 
 const GOAL_TYPES = [
   { value: 'daily_words', label: 'Daily Words', icon: '📝' },
@@ -47,14 +37,14 @@ const GOAL_TYPES = [
 ]
 
 function getGoalTypeLabel(type: string): string {
-  return GOAL_TYPES.find((t) => t.value === type)?.label ?? type
+  return GOAL_TYPES.find(t => t.value === type)?.label ?? type
 }
 
 function getGoalTypeIcon(type: string): string {
-  return GOAL_TYPES.find((t) => t.value === type)?.icon ?? '🎯'
+  return GOAL_TYPES.find(t => t.value === type)?.icon ?? '🎯'
 }
 
-function getProgressColor(progress: number, deadline: string): string {
+function getProgressColor(progress: number, deadline: string | null): string {
   if (deadline) {
     const now = new Date()
     const dl = new Date(deadline)
@@ -73,8 +63,8 @@ function getProgressColor(progress: number, deadline: string): string {
 
 export function GoalsPanel() {
   const { currentProjectId } = useWriterStore()
-  const [goals, setGoals] = useState<Goal[]>([])
-  const [loading, setLoading] = useState(true)
+  const store = useDataStore()
+
   const [showCreate, setShowCreate] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
 
@@ -86,103 +76,47 @@ export function GoalsPanel() {
   // Edit form state
   const [editTarget, setEditTarget] = useState(0)
 
-  const fetchGoals = useCallback(async () => {
-    if (!currentProjectId) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/goals?projectId=${currentProjectId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setGoals(data)
-      }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false)
-    }
-  }, [currentProjectId])
+  // ─── Derived goals from store ────────────────
 
-  useEffect(() => {
-    fetchGoals()
-  }, [fetchGoals])
+  const goals = currentProjectId ? store.getGoalsByProject(currentProjectId) : []
+  const activeGoals = goals.filter(g => g.active)
+  const inactiveGoals = goals.filter(g => !g.active)
 
-  const handleCreateGoal = async () => {
+  // ─── Handlers ────────────────────────────────
+
+  const handleCreateGoal = () => {
     if (!currentProjectId || newTarget <= 0) return
-    try {
-      const res = await fetch('/api/goals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId: currentProjectId,
-          type: newType,
-          target: newTarget,
-          deadline: newDeadline,
-          active: true,
-        }),
-      })
-      if (res.ok) {
-        await fetchGoals()
-        setShowCreate(false)
-        setNewTarget(1000)
-        setNewDeadline('')
-      }
-    } catch {
-      // silent
-    }
+    store.addGoal({
+      projectId: currentProjectId,
+      type: newType,
+      target: newTarget,
+      current: 0,
+      deadline: newDeadline || null,
+      label: getGoalTypeLabel(newType),
+      active: true,
+    })
+    setShowCreate(false)
+    setNewTarget(1000)
+    setNewDeadline('')
   }
 
-  const handleToggleActive = async (goal: Goal) => {
-    try {
-      // Create a new goal with toggled active state (the API updates existing)
-      await fetch('/api/goals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId: currentProjectId,
-          type: goal.type,
-          active: !goal.active,
-        }),
-      })
-      await fetchGoals()
-    } catch {
-      // silent
-    }
+  const handleToggleActive = (goalId: string, currentActive: boolean) => {
+    store.updateGoal(goalId, { active: !currentActive })
   }
 
-  const handleDeleteGoal = async (goalId: string) => {
-    try {
-      await fetch(`/api/goals/${goalId}`, { method: 'DELETE' })
-      await fetchGoals()
-    } catch {
-      // silent
-    }
+  const handleDeleteGoal = (goalId: string) => {
+    store.deleteGoal(goalId)
   }
 
-  const handleStartEdit = (goal: Goal) => {
-    setEditingId(goal.id)
-    setEditTarget(goal.target)
+  const handleStartEdit = (target: number) => {
+    setEditingId(null) // close first
+    setEditTarget(target)
   }
 
-  const handleSaveEdit = async (goal: Goal) => {
-    try {
-      await fetch('/api/goals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId: currentProjectId,
-          type: goal.type,
-          target: editTarget,
-        }),
-      })
-      await fetchGoals()
-      setEditingId(null)
-    } catch {
-      // silent
-    }
+  const handleSaveEdit = (goalId: string) => {
+    store.updateGoal(goalId, { target: editTarget })
+    setEditingId(null)
   }
-
-  const activeGoals = goals.filter((g) => g.active)
-  const inactiveGoals = goals.filter((g) => !g.active)
 
   return (
     <ScrollArea className="h-full">
@@ -214,7 +148,7 @@ export function GoalsPanel() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {GOAL_TYPES.map((t) => (
+                    {GOAL_TYPES.map(t => (
                       <SelectItem key={t.value} value={t.value}>
                         {t.icon} {t.label}
                       </SelectItem>
@@ -274,16 +208,10 @@ export function GoalsPanel() {
           <h3 className="text-xs font-medium text-stone-600 dark:text-stone-400 uppercase tracking-wider">
             Active Goals
           </h3>
-          {loading ? (
-            <div className="space-y-2">
-              {[1, 2].map((i) => (
-                <div key={i} className="h-16 bg-stone-100 dark:bg-stone-800 rounded-md animate-pulse" />
-              ))}
-            </div>
-          ) : activeGoals.length === 0 ? (
+          {activeGoals.length === 0 ? (
             <p className="text-xs text-stone-400 py-2">No active goals. Create one to track your progress!</p>
           ) : (
-            activeGoals.map((goal) => {
+            activeGoals.map(goal => {
               const progress = goal.target > 0 ? Math.min((goal.current / goal.target) * 100, 100) : 0
               const colorClass = getProgressColor(progress, goal.deadline)
               const isEditing = editingId === goal.id
@@ -313,7 +241,7 @@ export function GoalsPanel() {
                             size="sm"
                             variant="ghost"
                             className="h-6 w-6 p-0"
-                            onClick={() => handleSaveEdit(goal)}
+                            onClick={() => handleSaveEdit(goal.id)}
                           >
                             <Check className="h-3 w-3 text-emerald-600" />
                           </Button>
@@ -332,7 +260,10 @@ export function GoalsPanel() {
                             size="sm"
                             variant="ghost"
                             className="h-6 w-6 p-0"
-                            onClick={() => handleStartEdit(goal)}
+                            onClick={() => {
+                              setEditingId(goal.id)
+                              handleStartEdit(goal.target)
+                            }}
                           >
                             <Edit3 className="h-3 w-3 text-stone-400" />
                           </Button>
@@ -340,7 +271,7 @@ export function GoalsPanel() {
                             size="sm"
                             variant="ghost"
                             className="h-6 w-6 p-0"
-                            onClick={() => handleToggleActive(goal)}
+                            onClick={() => handleToggleActive(goal.id, goal.active)}
                           >
                             <ToggleRight className="h-3 w-3 text-amber-500" />
                           </Button>
@@ -394,7 +325,7 @@ export function GoalsPanel() {
               <h3 className="text-xs font-medium text-stone-600 dark:text-stone-400 uppercase tracking-wider">
                 Inactive
               </h3>
-              {inactiveGoals.map((goal) => (
+              {inactiveGoals.map(goal => (
                 <div
                   key={goal.id}
                   className="flex items-center justify-between p-2 rounded-md bg-stone-50 dark:bg-stone-800/50"
@@ -410,7 +341,7 @@ export function GoalsPanel() {
                       size="sm"
                       variant="ghost"
                       className="h-6 w-6 p-0"
-                      onClick={() => handleToggleActive(goal)}
+                      onClick={() => handleToggleActive(goal.id, goal.active)}
                     >
                       <ToggleLeft className="h-3 w-3 text-stone-400" />
                     </Button>

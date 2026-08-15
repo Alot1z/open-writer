@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 
 interface ActiveSession {
   sceneId: string
@@ -13,20 +14,22 @@ interface ActiveSession {
 /**
  * Hook that automatically tracks writing sessions.
  * When a scene is focused, it starts tracking. When writing stops
- * (scene change or inactivity), it records a WritingSession.
+ * (scene change or inactivity), it records a WritingSession
+ * via the client-side data store.
  */
 export function useWritingSession() {
   const { currentSceneId, currentProjectId, editorWordCount } = useWriterStore()
+  const store = useDataStore()
 
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null)
   const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastWordCountRef = useRef(editorWordCount)
   const INACTIVITY_TIMEOUT = 5 * 60 * 1000 // 5 minutes
 
-  // Save a session to the API
-  const saveSession = useCallback(async (session: ActiveSession, endWordCount: number) => {
+  // Save a session to the data store (synchronous, no fetch)
+  const saveSession = useCallback((session: ActiveSession, endWordCount: number) => {
     if (session.saved) return
-    
+
     const wordsWritten = Math.max(0, endWordCount - session.startWordCount)
     if (wordsWritten <= 0) return
 
@@ -35,28 +38,16 @@ export function useWritingSession() {
 
     const today = new Date().toISOString().split('T')[0]
 
-    try {
-      await fetch('/api/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId: currentProjectId,
-          wordsWritten,
-          duration,
-          date: today,
-          metadata: JSON.stringify({
-            sceneId: session.sceneId,
-            type: 'auto',
-          }),
-        }),
-      })
-    } catch {
-      // silent - don't interrupt writing
-    }
-  }, [currentProjectId])
+    store.addSession({
+      projectId: currentProjectId || '',
+      wordsWritten,
+      duration,
+      date: today,
+    })
+  }, [currentProjectId, store])
 
   // End the current session
-  const endCurrentSession = useCallback(async (endWordCount: number) => {
+  const endCurrentSession = useCallback((endWordCount: number) => {
     if (inactivityTimerRef.current) {
       clearTimeout(inactivityTimerRef.current)
       inactivityTimerRef.current = null

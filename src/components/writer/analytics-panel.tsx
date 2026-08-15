@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useMemo, useState } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -22,29 +22,6 @@ import {
 import { SprintPanel } from './sprint-panel'
 import { GoalsPanel } from './goals-panel'
 
-interface Goal {
-  id: string
-  type: string
-  target: number
-  current: number
-  deadline: string
-  active: boolean
-}
-
-interface Session {
-  id: string
-  wordsWritten: number
-  duration: number
-  date: string
-}
-
-interface ChapterStats {
-  draft: number
-  writing: number
-  revision: number
-  final: number
-}
-
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00')
   return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
@@ -52,63 +29,29 @@ function formatDate(dateStr: string): string {
 
 export function AnalyticsPanel() {
   const { currentProjectId, setSprintPanelOpen } = useWriterStore()
-  const [goals, setGoals] = useState<Goal[]>([])
-  const [sessions, setSessions] = useState<Session[]>([])
-  const [chapterStats, setChapterStats] = useState<ChapterStats>({ draft: 0, writing: 0, revision: 0, final: 0 })
-  const [totalWords, setTotalWords] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('overview')
+  const store = useDataStore()
+  const [activeTab, setActiveTab] = useState('goals')
 
-  const fetchData = useCallback(async () => {
-    if (!currentProjectId) return
-    setLoading(true)
-    try {
-      // Fetch goals
-      const goalsRes = await fetch(`/api/goals?projectId=${currentProjectId}`)
-      if (goalsRes.ok) {
-        const goalsData = await goalsRes.json()
-        setGoals(goalsData)
-      }
+  // ─── Derived data from store ─────────────────
 
-      // Fetch sessions
-      const sessionsRes = await fetch(`/api/sessions?projectId=${currentProjectId}`)
-      if (sessionsRes.ok) {
-        const sessionsData = await sessionsRes.json()
-        setSessions(sessionsData)
-      }
-
-      // Fetch chapters
-      const chaptersRes = await fetch(`/api/chapters?projectId=${currentProjectId}`)
-      if (chaptersRes.ok) {
-        const chapters = await chaptersRes.json()
-        const stats: ChapterStats = { draft: 0, writing: 0, revision: 0, final: 0 }
-        let words = 0
-        for (const ch of chapters) {
-          const status = ch.status || 'draft'
-          if (status in stats) {
-            stats[status as keyof ChapterStats]++
-          } else {
-            stats.draft++
-          }
-          if (ch.scenes) {
-            for (const scene of ch.scenes) {
-              words += scene.wordCount || 0
-            }
-          }
-        }
-        setChapterStats(stats)
-        setTotalWords(words)
-      }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false)
+  const { goals, sessions, totalWords, chapterStats } = useMemo(() => {
+    if (!currentProjectId) {
+      return { goals: [], sessions: [], totalWords: 0, chapterStats: { draft: 0, writing: 0, revision: 0, final: 0 } }
     }
-  }, [currentProjectId])
 
-  useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    const goals = store.getGoalsByProject(currentProjectId)
+    const sessions = store.getSessionsByProject(currentProjectId)
+    const totalWords = store.getProjectWordCount(currentProjectId)
+
+    const chapters = store.getChaptersByProject(currentProjectId)
+    const stats = { draft: 0, writing: 0, revision: 0, final: 0 }
+    for (const ch of chapters) {
+      // Data-store chapters don't have a status field, so count all as draft
+      stats.draft++
+    }
+
+    return { goals, sessions, totalWords, chapterStats: stats }
+  }, [store, currentProjectId])
 
   // Calculate streak
   const calculateStreak = (): number => {
@@ -118,7 +61,7 @@ export function AnalyticsPanel() {
     let streakCount = 0
     let checkDate = new Date(today)
 
-    const sessionDates = new Set(sessions.map((s) => s.date))
+    const sessionDates = new Set(sessions.map((s) => s.date.split('T')[0]))
 
     while (sessionDates.has(checkDate.toISOString().split('T')[0])) {
       streakCount++
@@ -130,7 +73,7 @@ export function AnalyticsPanel() {
   const todayWords = (() => {
     const today = new Date().toISOString().split('T')[0]
     return sessions
-      .filter((s) => s.date === today)
+      .filter((s) => s.date.split('T')[0] === today)
       .reduce((sum, s) => sum + s.wordsWritten, 0)
   })()
 
@@ -146,7 +89,7 @@ export function AnalyticsPanel() {
       d.setDate(d.getDate() - i)
       const dateStr = d.toISOString().split('T')[0]
       const dayWords = sessions
-        .filter((s) => s.date === dateStr)
+        .filter((s) => s.date.split('T')[0] === dateStr)
         .reduce((sum, s) => sum + s.wordsWritten, 0)
       days.push({
         date: dateStr,
@@ -158,17 +101,6 @@ export function AnalyticsPanel() {
   })()
 
   const maxDayWords = Math.max(...last7Days.map((d) => d.words), 1)
-
-  if (loading) {
-    return (
-      <div className="p-4 space-y-4">
-        <Skeleton className="h-6 w-32" />
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-20 w-full rounded-lg" />
-        ))}
-      </div>
-    )
-  }
 
   return (
     <div className="h-full flex flex-col">
@@ -364,7 +296,7 @@ export function AnalyticsPanel() {
                         >
                           <div className="flex items-center gap-2">
                             <Clock className="h-3.5 w-3.5 text-stone-400" />
-                            <span className="text-xs text-stone-600 dark:text-stone-300">{formatDate(session.date)}</span>
+                            <span className="text-xs text-stone-600 dark:text-stone-300">{formatDate(session.date.split('T')[0])}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-medium text-stone-900 dark:text-stone-100">

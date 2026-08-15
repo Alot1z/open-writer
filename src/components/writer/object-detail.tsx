@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -53,78 +54,57 @@ interface ObjectDetailProps {
 export function ObjectDetail({ objectId: objectIdProp }: ObjectDetailProps = {}) {
   const { selectedObjectId, setRightPanel, setSelectedObject } = useWriterStore()
   const effectiveId = objectIdProp ?? selectedObjectId
+  const store = useDataStore()
   const { toast } = useToast()
-  const [object, setObject] = useState<StoryObject | null>(null)
-  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const fetchObject = useCallback(async () => {
-    if (!effectiveId) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/objects/${effectiveId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setObject(data)
+  // Load object directly from data store
+  const rawObject = effectiveId ? store.getObject(effectiveId) : undefined
+  const object: StoryObject | null = rawObject
+    ? {
+        id: rawObject.id,
+        name: rawObject.name,
+        type: rawObject.type,
+        description: rawObject.description ?? '',
+        owner: rawObject.owner ?? '',
+        location: rawObject.location ?? '',
+        history: rawObject.history ?? '',
+        appearance: rawObject.appearance ?? '',
+        significance: rawObject.significance ?? '',
+        tags: rawObject.tags ?? '[]',
       }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false)
-    }
-  }, [effectiveId])
+    : null
 
-  useEffect(() => {
-    fetchObject()
-  }, [fetchObject])
+  const saveField = (field: string, value: string) => {
+    if (!rawObject) return
+    setSaving(true)
 
-  const saveField = useCallback(
-    (field: string, value: string) => {
-      if (!object) return
-      setObject((prev) => (prev ? { ...prev, [field]: value } : prev))
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      store.updateObject(rawObject.id, { [field]: value } as Partial<import('@/store/data-store').StoryObject>)
+      setSaving(false)
+      toast({ title: 'Saved', description: 'Object updated' })
+    }, 800)
+  }
 
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(async () => {
-        setSaving(true)
-        try {
-          const res = await fetch(`/api/objects/${object.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ [field]: value }),
-          })
-          if (res.ok) {
-            toast({ title: 'Saved', description: 'Object updated' })
-          }
-        } catch {
-          // silent
-        } finally {
-          setSaving(false)
-        }
-      }, 800)
-    },
-    [object, toast]
-  )
-
-  const handleDelete = async () => {
-    if (!object) return
-    try {
-      const res = await fetch(`/api/objects/${object.id}`, { method: 'DELETE' })
-      if (res.ok) {
-        setSelectedObject(null)
-        setRightPanel('none')
-        toast({ title: 'Deleted', description: 'Object removed' })
-      }
-    } catch {
-      // silent
-    }
+  const handleDelete = () => {
+    if (!rawObject) return
+    store.deleteObject(rawObject.id)
+    setSelectedObject(null)
+    setRightPanel('none')
+    toast({ title: 'Deleted', description: 'Object removed' })
   }
 
   const parseTags = (tagsStr: string): string[] => {
     try { return JSON.parse(tagsStr || '[]') } catch { return [] }
   }
 
-  if (loading) {
+  if (!effectiveId) {
+    return <div className="p-6 text-center text-sm text-stone-500">Select an object to view details</div>
+  }
+
+  if (!object) {
     return (
       <div className="p-4 space-y-4">
         <Skeleton className="h-6 w-40" />
@@ -137,10 +117,6 @@ export function ObjectDetail({ objectId: objectIdProp }: ObjectDetailProps = {})
         ))}
       </div>
     )
-  }
-
-  if (!object) {
-    return <div className="p-6 text-center text-sm text-stone-500">Select an object to view details</div>
   }
 
   const tags = parseTags(object.tags)

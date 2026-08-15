@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useState } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select,
   SelectContent,
@@ -15,16 +15,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Plus, Search, Package } from 'lucide-react'
-
-interface StoryObject {
-  id: string
-  name: string
-  type: string
-  description: string
-  owner: string
-  location: string
-  tags: string
-}
 
 const TYPE_OPTIONS = [
   { value: 'all', label: 'All Types' },
@@ -53,52 +43,23 @@ const TYPE_COLORS: Record<string, string> = {
 
 export function ObjectsPanel() {
   const { currentProjectId, setRightPanel, setSelectedObject, selectedObjectId } = useWriterStore()
-  const [objects, setObjects] = useState<StoryObject[]>([])
-  const [loading, setLoading] = useState(true)
+  const store = useDataStore()
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
 
-  const fetchObjects = useCallback(async () => {
-    if (!currentProjectId) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/objects?projectId=${currentProjectId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setObjects(data)
-      }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false)
-    }
-  }, [currentProjectId])
+  const objects = currentProjectId ? store.getObjectsByProject(currentProjectId) : []
 
-  useEffect(() => {
-    fetchObjects()
-  }, [fetchObjects])
-
-  const handleAdd = async () => {
+  const handleAdd = () => {
     if (!currentProjectId) return
-    try {
-      const res = await fetch('/api/objects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId: currentProjectId,
-          name: 'New Object',
-          type: 'other',
-        }),
-      })
-      if (res.ok) {
-        const newObj = await res.json()
-        setObjects((prev) => [...prev, newObj])
-        setSelectedObject(newObj.id)
-        setRightPanel('object-detail', newObj.id)
-      }
-    } catch {
-      // silent
-    }
+    const newObj = store.addObject({
+      projectId: currentProjectId,
+      name: 'New Object',
+      type: 'other',
+      description: '',
+      significance: '',
+    })
+    setSelectedObject(newObj.id)
+    setRightPanel('object-detail', newObj.id)
   }
 
   const handleClick = (id: string) => {
@@ -149,19 +110,7 @@ export function ObjectsPanel() {
       </div>
 
       <ScrollArea className="flex-1">
-        {loading ? (
-          <div className="p-4 space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-8 w-8 rounded" />
-                <div className="flex-1 space-y-1.5">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-3 w-16" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="p-6 text-center">
             <p className="text-sm text-stone-500 dark:text-stone-400">
               {objects.length === 0
@@ -197,8 +146,8 @@ export function ObjectsPanel() {
                         {obj.type}
                       </Badge>
                     )}
-                    {obj.owner && (
-                      <span className="text-[10px] text-stone-400 truncate">Owner: {obj.owner}</span>
+                    {obj.significance && (
+                      <span className="text-[10px] text-stone-400 truncate">{obj.significance.slice(0, 20)}</span>
                     )}
                   </div>
                 </div>

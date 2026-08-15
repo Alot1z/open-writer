@@ -1,14 +1,13 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useMemo, useState } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Collapsible,
@@ -31,56 +30,13 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
-  Loader2,
 } from 'lucide-react'
 
 // ─── Types ───────────────────────────────────────
 
-interface Comment {
-  id: string
-  projectId: string
-  chapterId?: string
-  sceneId?: string
-  content: string
-  author: string
-  resolved: boolean
-  createdAt: string
-  updatedAt: string
-}
-
 type FilterMode = 'all' | 'unresolved' | 'resolved'
 
 // ─── Helpers ─────────────────────────────────────
-
-/** Parse the raw DB row into our Comment interface, extracting author from metadata JSON. */
-function parseComment(raw: {
-  id: string
-  projectId: string
-  sceneId: string | null
-  content: string
-  resolved: boolean
-  metadata: string
-  createdAt: string
-  updatedAt: string
-}): Comment {
-  let author = 'You'
-  try {
-    const meta = JSON.parse(raw.metadata || '{}')
-    if (meta.author) author = meta.author
-  } catch {
-    // keep default
-  }
-  return {
-    id: raw.id,
-    projectId: raw.projectId,
-    sceneId: raw.sceneId ?? undefined,
-    content: raw.content,
-    author,
-    resolved: raw.resolved,
-    createdAt: raw.createdAt,
-    updatedAt: raw.updatedAt,
-  }
-}
 
 function formatRelativeTime(dateStr: string): string {
   const now = Date.now()
@@ -104,104 +60,53 @@ function formatRelativeTime(dateStr: string): string {
 
 export function CommentsPanel() {
   const { currentProjectId, currentChapterId, currentSceneId } = useWriterStore()
+  const store = useDataStore()
   const { toast } = useToast()
 
-  const [comments, setComments] = useState<Comment[]>([])
-  const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<FilterMode>('all')
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [newContent, setNewContent] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [togglingId, setTogglingId] = useState<string | null>(null)
   const [resolvedOpen, setResolvedOpen] = useState(true)
 
-  // ─── Fetch ────────────────────────────────────
+  // ─── Derived comments from store ─────────────
 
-  const fetchComments = useCallback(async () => {
-    if (!currentProjectId) return
-    setLoading(true)
-    try {
-      let url = `/api/comments?projectId=${currentProjectId}`
-      if (currentSceneId) {
-        url += `&sceneId=${currentSceneId}`
-      } else if (currentChapterId) {
-        url += `&chapterId=${currentChapterId}`
-      }
-      const res = await fetch(url)
-      if (res.ok) {
-        const data = await res.json()
-        setComments(data.map(parseComment))
-      }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false)
+  const comments = useMemo(() => {
+    if (!currentProjectId) return []
+    let result = store.getCommentsByProject(currentProjectId)
+    if (currentSceneId) {
+      result = result.filter(c => c.sceneId === currentSceneId)
+    } else if (currentChapterId) {
+      result = result.filter(c => c.chapterId === currentChapterId)
     }
-  }, [currentProjectId, currentChapterId, currentSceneId])
-
-  useEffect(() => {
-    fetchComments()
-  }, [fetchComments])
+    return result
+  }, [store, currentProjectId, currentChapterId, currentSceneId])
 
   // ─── Add comment ──────────────────────────────
 
-  const handleAdd = async () => {
+  const handleAdd = () => {
     if (!currentProjectId || !newContent.trim()) return
-    setSubmitting(true)
-    try {
-      const res = await fetch('/api/comments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId: currentProjectId,
-          sceneId: currentSceneId || null,
-          content: newContent.trim(),
-          author: 'You',
-        }),
-      })
-      if (res.ok) {
-        const raw = await res.json()
-        const comment = parseComment(raw)
-        setComments((prev) => [comment, ...prev])
-        setNewContent('')
-        setShowAddDialog(false)
-        toast({ title: 'Comment added', description: 'Your comment has been saved' })
-      } else {
-        toast({ title: 'Error', description: 'Failed to add comment', variant: 'destructive' })
-      }
-    } catch {
-      toast({ title: 'Error', description: 'Failed to add comment', variant: 'destructive' })
-    } finally {
-      setSubmitting(false)
-    }
+    store.addComment({
+      projectId: currentProjectId,
+      sceneId: currentSceneId || null,
+      chapterId: currentChapterId || null,
+      text: newContent.trim(),
+      resolved: false,
+    })
+    setNewContent('')
+    setShowAddDialog(false)
+    toast({ title: 'Comment added', description: 'Your comment has been saved' })
   }
 
   // ─── Toggle resolved ─────────────────────────
 
-  const handleToggleResolved = async (comment: Comment) => {
-    setTogglingId(comment.id)
-    try {
-      const res = await fetch(`/api/comments/${comment.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resolved: !comment.resolved }),
-      })
-      if (res.ok) {
-        setComments((prev) =>
-          prev.map((c) => (c.id === comment.id ? { ...c, resolved: !c.resolved } : c))
-        )
-        toast({
-          title: comment.resolved ? 'Comment reopened' : 'Comment resolved',
-          description: comment.resolved
-            ? 'Comment moved back to active'
-            : 'Comment marked as resolved',
-        })
-      }
-    } catch {
-      toast({ title: 'Error', description: 'Failed to update comment', variant: 'destructive' })
-    } finally {
-      setTogglingId(null)
-    }
+  const handleToggleResolved = (commentId: string, isResolved: boolean) => {
+    store.updateComment(commentId, { resolved: !isResolved })
+    toast({
+      title: isResolved ? 'Comment reopened' : 'Comment resolved',
+      description: isResolved
+        ? 'Comment moved back to active'
+        : 'Comment marked as resolved',
+    })
   }
 
   // ─── Derived data ─────────────────────────────
@@ -284,21 +189,7 @@ export function CommentsPanel() {
 
       {/* ── Body ── */}
       <ScrollArea className="flex-1">
-        {loading ? (
-          <div className="p-4 space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="space-y-2 p-3 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Skeleton className="h-6 w-6 rounded-full" />
-                  <Skeleton className="h-3.5 w-20" />
-                  <Skeleton className="h-3 w-12" />
-                </div>
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-              </div>
-            ))}
-          </div>
-        ) : totalCount === 0 ? (
+        {totalCount === 0 ? (
           <div className="p-6 text-center space-y-2">
             <MessageSquare className="h-8 w-8 mx-auto text-stone-300 dark:text-stone-600" />
             <p className="text-sm text-stone-500 dark:text-stone-400">
@@ -329,7 +220,7 @@ export function CommentsPanel() {
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-medium text-stone-900 dark:text-stone-100">
-                        {comment.author}
+                        You
                       </span>
                       <span className="text-[10px] text-stone-400 flex items-center gap-0.5">
                         <Clock className="h-2.5 w-2.5" />
@@ -337,21 +228,16 @@ export function CommentsPanel() {
                       </span>
                     </div>
                     <p className="text-sm text-stone-700 dark:text-stone-300 whitespace-pre-wrap break-words">
-                      {comment.content}
+                      {comment.text}
                     </p>
                     <div className="flex items-center gap-1 pt-1">
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleToggleResolved(comment)}
-                        disabled={togglingId === comment.id}
+                        onClick={() => handleToggleResolved(comment.id, comment.resolved)}
                         className="h-6 px-2 text-[11px] gap-1 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
                       >
-                        {togglingId === comment.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Check className="h-3 w-3" />
-                        )}
+                        <Check className="h-3 w-3" />
                         Resolve
                       </Button>
                     </div>
@@ -405,7 +291,7 @@ export function CommentsPanel() {
                             <div className="flex-1 min-w-0 space-y-1">
                               <div className="flex items-center gap-2">
                                 <span className="text-xs font-medium text-stone-900 dark:text-stone-100">
-                                  {comment.author}
+                                  You
                                 </span>
                                 <span className="text-[10px] text-stone-400 flex items-center gap-0.5">
                                   <Clock className="h-2.5 w-2.5" />
@@ -413,21 +299,16 @@ export function CommentsPanel() {
                                 </span>
                               </div>
                               <p className="text-sm text-stone-700 dark:text-stone-300 whitespace-pre-wrap break-words">
-                                {comment.content}
+                                {comment.text}
                               </p>
                               <div className="flex items-center gap-1 pt-1">
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleToggleResolved(comment)}
-                                  disabled={togglingId === comment.id}
+                                  onClick={() => handleToggleResolved(comment.id, comment.resolved)}
                                   className="h-6 px-2 text-[11px] gap-1 text-stone-500 hover:text-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800"
                                 >
-                                  {togglingId === comment.id ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <RotateCcw className="h-3 w-3" />
-                                  )}
+                                  <RotateCcw className="h-3 w-3" />
                                   Reopen
                                 </Button>
                               </div>
@@ -477,7 +358,6 @@ export function CommentsPanel() {
                 setShowAddDialog(false)
                 setNewContent('')
               }}
-              disabled={submitting}
               className="text-xs"
             >
               Cancel
@@ -485,15 +365,11 @@ export function CommentsPanel() {
             <Button
               size="sm"
               onClick={handleAdd}
-              disabled={!newContent.trim() || submitting}
+              disabled={!newContent.trim()}
               className="gap-1.5 text-xs bg-amber-600 hover:bg-amber-700 text-white"
             >
-              {submitting ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Plus className="h-3.5 w-3.5" />
-              )}
-              {submitting ? 'Adding...' : 'Add Comment'}
+              <Plus className="h-3.5 w-3.5" />
+              Add Comment
             </Button>
           </DialogFooter>
         </DialogContent>

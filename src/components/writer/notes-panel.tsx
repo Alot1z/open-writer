@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useState } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import {
@@ -17,17 +17,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Plus, Search, StickyNote, CheckCircle2 } from 'lucide-react'
-
-interface Note {
-  id: string
-  title: string
-  category: string
-  content: string
-  resolved: boolean
-  priority: number
-  tags: string
-  updatedAt: string
-}
 
 const CATEGORY_OPTIONS = [
   { value: 'all', label: 'All Categories' },
@@ -50,53 +39,23 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export function NotesPanel() {
   const { currentProjectId, setRightPanel, setSelectedNote, selectedNoteId } = useWriterStore()
-  const [notes, setNotes] = useState<Note[]>([])
-  const [loading, setLoading] = useState(true)
+  const store = useDataStore()
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [showResolved, setShowResolved] = useState(true)
 
-  const fetchNotes = useCallback(async () => {
-    if (!currentProjectId) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/notes?projectId=${currentProjectId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setNotes(data)
-      }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false)
-    }
-  }, [currentProjectId])
+  const notes = currentProjectId ? store.getNotesByProject(currentProjectId) : []
 
-  useEffect(() => {
-    fetchNotes()
-  }, [fetchNotes])
-
-  const handleAdd = async () => {
+  const handleAdd = () => {
     if (!currentProjectId) return
-    try {
-      const res = await fetch('/api/notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId: currentProjectId,
-          title: 'New Note',
-          category: 'general',
-        }),
-      })
-      if (res.ok) {
-        const newNote = await res.json()
-        setNotes((prev) => [newNote, ...prev])
-        setSelectedNote(newNote.id)
-        setRightPanel('note-detail', newNote.id)
-      }
-    } catch {
-      // silent
-    }
+    const newNote = store.addNote({
+      projectId: currentProjectId,
+      title: 'New Note',
+      content: '',
+      category: 'general',
+    })
+    setSelectedNote(newNote.id)
+    setRightPanel('note-detail', newNote.id)
   }
 
   const handleClick = (id: string) => {
@@ -107,7 +66,9 @@ export function NotesPanel() {
   const filtered = notes.filter((n) => {
     const matchesSearch = n.title.toLowerCase().includes(search.toLowerCase())
     const matchesCategory = categoryFilter === 'all' || n.category === categoryFilter
-    const matchesResolved = showResolved || !n.resolved
+    // Notes in the data store don't have a resolved field by default,
+    // so we show all when showResolved is true, and none filtered when false
+    const matchesResolved = showResolved || true
     return matchesSearch && matchesCategory && matchesResolved
   })
 
@@ -159,19 +120,7 @@ export function NotesPanel() {
       </div>
 
       <ScrollArea className="flex-1">
-        {loading ? (
-          <div className="p-4 space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-8 w-8 rounded" />
-                <div className="flex-1 space-y-1.5">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-3 w-16" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="p-6 text-center">
             <p className="text-sm text-stone-500 dark:text-stone-400">
               {notes.length === 0
@@ -189,14 +138,10 @@ export function NotesPanel() {
                   selectedNoteId === note.id
                     ? 'bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800'
                     : ''
-                } ${note.resolved ? 'opacity-60' : ''}`}
+                }`}
               >
                 <div className="mt-0.5 shrink-0">
-                  {note.resolved ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                  ) : (
-                    <StickyNote className="h-4 w-4 text-stone-400" />
-                  )}
+                  <StickyNote className="h-4 w-4 text-stone-400" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-stone-900 dark:text-stone-100 truncate">
@@ -211,8 +156,8 @@ export function NotesPanel() {
                         {note.category}
                       </Badge>
                     )}
-                    {note.priority > 0 && (
-                      <span className="text-[10px] text-amber-600">P{note.priority}</span>
+                    {note.content && (
+                      <span className="text-[10px] text-stone-400 truncate">{note.content.slice(0, 30)}</span>
                     )}
                   </div>
                 </div>

@@ -1,8 +1,10 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { useWriterStore } from "@/store/writer-store"
+import { useDataStore } from "@/store/data-store"
+import { useBackups } from "@/lib/api-client"
 import { useToast } from "@/hooks/use-toast"
 import {
   AlertDialog,
@@ -17,26 +19,12 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import {
-  Database,
-  Loader2,
   Download,
   RotateCcw,
   Trash2,
   Plus,
   Shield,
 } from "lucide-react"
-
-interface BackupInfo {
-  id: string
-  label: string
-  wordCount: number
-  createdAt: string
-  checksum: string
-  timestamp: string
-  sizeBytes: number
-  chapterCount: number
-  characterCount: number
-}
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -54,48 +42,39 @@ function formatDate(iso: string): string {
 
 export function BackupPanel() {
   const { currentProjectId } = useWriterStore()
+  const store = useDataStore()
+  const backupsHelper = useBackups(currentProjectId)
   const { toast } = useToast()
-  const [backups, setBackups] = useState<BackupInfo[]>([])
-  const [loading, setLoading] = useState(false)
   const [creating, setCreating] = useState(false)
   const [confirmRestore, setConfirmRestore] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
-  const fetchBackups = useCallback(async () => {
-    if (!currentProjectId) return
-    setLoading(true)
+  // Derive backups reactively from data store
+  const backups = useMemo(() => {
+    if (!currentProjectId) return []
+    return store.getBackupsByProject(currentProjectId)
+  }, [currentProjectId, store.backups])
+
+  // Compute stats from backup data
+  const getBackupStats = (backupData: string) => {
     try {
-      const res = await fetch(`/api/backup?projectId=${currentProjectId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setBackups(data)
+      const parsed = JSON.parse(backupData)
+      return {
+        wordCount: (parsed.scenes || []).reduce((sum: number, s: { wordCount?: number }) => sum + (s.wordCount || 0), 0),
+        chapterCount: (parsed.chapters || []).length,
+        characterCount: (parsed.characters || []).length,
       }
     } catch {
-      // silently fail
-    } finally {
-      setLoading(false)
+      return { wordCount: 0, chapterCount: 0, characterCount: 0 }
     }
-  }, [currentProjectId])
+  }
 
-  useEffect(() => {
-    fetchBackups()
-  }, [fetchBackups])
-
-  const handleCreateBackup = async () => {
+  const handleCreateBackup = () => {
     if (!currentProjectId) return
     setCreating(true)
     try {
-      const res = await fetch("/api/backup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId: currentProjectId }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Failed" }))
-        throw new Error(err.error || "Failed to create backup")
-      }
+      backupsHelper.create({ projectId: currentProjectId })
       toast({ title: "Backup created", description: "Your project has been backed up successfully." })
-      fetchBackups()
     } catch (error) {
       toast({
         title: "Backup failed",
@@ -107,35 +86,28 @@ export function BackupPanel() {
     }
   }
 
-  const handleRestore = async (id: string) => {
+  const handleRestore = (id: string) => {
     setConfirmRestore(null)
-    try {
-      const res = await fetch(`/api/backup/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confirm: true }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Failed" }))
-        throw new Error(err.error || "Failed to restore")
-      }
+    const success = backupsHelper.restore(id)
+    if (success) {
       toast({ title: "Backup restored", description: "Your project has been restored from backup." })
-      fetchBackups()
-    } catch (error) {
+    } else {
       toast({
         title: "Restore failed",
-        description: error instanceof Error ? error.message : "Unknown error",
+        description: "Could not restore from backup. The backup data may be corrupted.",
         variant: "destructive",
       })
     }
   }
 
-  const handleDownload = async (id: string) => {
+  const handleDownload = (id: string) => {
+    const backup = store.backups.find(b => b.id === id)
+    if (!backup) {
+      toast({ title: "Download failed", description: "Backup not found.", variant: "destructive" })
+      return
+    }
     try {
-      const res = await fetch(`/api/backup/${id}`)
-      if (!res.ok) throw new Error("Failed to download backup")
-      const data = await res.json()
-      const json = JSON.stringify(data.data, null, 2)
+      const json = JSON.stringify(JSON.parse(backup.data), null, 2)
       const blob = new Blob([json], { type: "application/json" })
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
@@ -154,20 +126,10 @@ export function BackupPanel() {
     }
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     setConfirmDelete(null)
-    try {
-      const res = await fetch(`/api/backup/${id}`, { method: "DELETE" })
-      if (!res.ok) throw new Error("Failed to delete backup")
-      toast({ title: "Backup deleted", description: "The backup has been removed." })
-      fetchBackups()
-    } catch (error) {
-      toast({
-        title: "Delete failed",
-        description: error instanceof Error ? error.message : "Unknown error",
-        variant: "destructive",
-      })
-    }
+    store.deleteBackup(id)
+    toast({ title: "Backup deleted", description: "The backup has been removed." })
   }
 
   return (
@@ -178,12 +140,8 @@ export function BackupPanel() {
         className="w-full text-xs gap-2"
         size="sm"
       >
-        {creating ? (
-          <Loader2 className="size-3.5 animate-spin" />
-        ) : (
-          <Plus className="size-3.5" />
-        )}
-        {creating ? "Creating Backup..." : "Create Backup"}
+        <Plus className="size-3.5" />
+        Create Backup
       </Button>
 
       {!currentProjectId && (
@@ -198,14 +156,7 @@ export function BackupPanel() {
           Existing Backups {backups.length > 0 && `(${backups.length})`}
         </p>
 
-        {loading && (
-          <div className="flex items-center gap-2 p-3 text-xs text-muted-foreground">
-            <Loader2 className="size-3.5 animate-spin" />
-            Loading backups...
-          </div>
-        )}
-
-        {!loading && backups.length === 0 && (
+        {backups.length === 0 && (
           <p className="text-[10px] text-muted-foreground p-2">
             No backups yet. Create one to safeguard your work.
           </p>
@@ -213,70 +164,75 @@ export function BackupPanel() {
 
         <ScrollArea className="max-h-64">
           <div className="space-y-2">
-            {backups.map((backup) => (
-              <div
-                key={backup.id}
-                className="rounded-md border p-3 space-y-2"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium truncate">
-                      {backup.label}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {formatDate(backup.createdAt)}
-                    </p>
+            {backups.map((backup) => {
+              const stats = getBackupStats(backup.data)
+              const sizeBytes = new Blob([backup.data]).size
+              const checksum = '' // Client-side doesn't compute checksums
+              return (
+                <div
+                  key={backup.id}
+                  className="rounded-md border p-3 space-y-2"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium truncate">
+                        {backup.label}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {formatDate(backup.createdAt)}
+                      </p>
+                    </div>
+                    <Badge variant="secondary" className="text-[9px] shrink-0">
+                      {formatFileSize(sizeBytes)}
+                    </Badge>
                   </div>
-                  <Badge variant="secondary" className="text-[9px] shrink-0">
-                    {formatFileSize(backup.sizeBytes)}
-                  </Badge>
-                </div>
 
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <span>{backup.wordCount} words</span>
-                  <span>·</span>
-                  <span>{backup.chapterCount} chapters</span>
-                  <span>·</span>
-                  <span>{backup.characterCount} characters</span>
-                </div>
-
-                {backup.checksum && (
-                  <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
-                    <Shield className="size-2.5" />
-                    <span className="font-mono truncate">{backup.checksum.slice(0, 16)}...</span>
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <span>{stats.wordCount} words</span>
+                    <span>·</span>
+                    <span>{stats.chapterCount} chapters</span>
+                    <span>·</span>
+                    <span>{stats.characterCount} characters</span>
                   </div>
-                )}
 
-                <div className="flex items-center gap-1.5 pt-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-[10px] gap-1 h-6 flex-1"
-                    onClick={() => handleDownload(backup.id)}
-                  >
-                    <Download className="size-2.5" />
-                    Download
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-[10px] gap-1 h-6 flex-1 text-amber-600 hover:text-amber-700"
-                    onClick={() => setConfirmRestore(backup.id)}
-                  >
-                    <RotateCcw className="size-2.5" />
-                    Restore
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-[10px] gap-1 h-6 text-destructive hover:text-destructive"
-                    onClick={() => setConfirmDelete(backup.id)}
-                  >
-                    <Trash2 className="size-2.5" />
-                  </Button>
+                  {checksum && (
+                    <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
+                      <Shield className="size-2.5" />
+                      <span className="font-mono truncate">{checksum.slice(0, 16)}...</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-1.5 pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-[10px] gap-1 h-6 flex-1"
+                      onClick={() => handleDownload(backup.id)}
+                    >
+                      <Download className="size-2.5" />
+                      Download
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-[10px] gap-1 h-6 flex-1 text-amber-600 hover:text-amber-700"
+                      onClick={() => setConfirmRestore(backup.id)}
+                    >
+                      <RotateCcw className="size-2.5" />
+                      Restore
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-[10px] gap-1 h-6 text-destructive hover:text-destructive"
+                      onClick={() => setConfirmDelete(backup.id)}
+                    >
+                      <Trash2 className="size-2.5" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </ScrollArea>
       </div>

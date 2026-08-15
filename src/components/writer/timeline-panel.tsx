@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useState } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useDataStore } from '@/store/data-store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select,
   SelectContent,
@@ -15,18 +15,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Plus, Search, Clock, CalendarDays } from 'lucide-react'
-
-interface TimelineEvent {
-  id: string
-  title: string
-  date: string
-  time: string
-  eventType: string
-  location: string
-  characters: string
-  description: string
-  tags: string
-}
 
 const EVENT_TYPE_OPTIONS = [
   { value: 'all', label: 'All Types' },
@@ -57,53 +45,22 @@ const EVENT_TYPE_COLORS: Record<string, string> = {
 
 export function TimelinePanel() {
   const { currentProjectId, setRightPanel, setSelectedTimelineEvent, selectedTimelineEventId } = useWriterStore()
-  const [events, setEvents] = useState<TimelineEvent[]>([])
-  const [loading, setLoading] = useState(true)
+  const store = useDataStore()
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
 
-  const fetchEvents = useCallback(async () => {
-    if (!currentProjectId) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/timeline?projectId=${currentProjectId}`)
-      if (res.ok) {
-        const data = await res.json()
-        setEvents(data)
-      }
-    } catch {
-      // silent
-    } finally {
-      setLoading(false)
-    }
-  }, [currentProjectId])
+  const events = currentProjectId ? store.getTimelineByProject(currentProjectId) : []
 
-  useEffect(() => {
-    fetchEvents()
-  }, [fetchEvents])
-
-  const handleAdd = async () => {
+  const handleAdd = () => {
     if (!currentProjectId) return
-    try {
-      const res = await fetch('/api/timeline', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId: currentProjectId,
-          title: 'New Event',
-          date: new Date().toISOString().split('T')[0],
-          eventType: 'custom',
-        }),
-      })
-      if (res.ok) {
-        const newEvent = await res.json()
-        setEvents((prev) => [...prev, newEvent])
-        setSelectedTimelineEvent(newEvent.id)
-        setRightPanel('timeline-detail', newEvent.id)
-      }
-    } catch {
-      // silent
-    }
+    const newEvent = store.addTimelineEvent({
+      projectId: currentProjectId,
+      title: 'New Event',
+      description: '',
+      date: new Date().toISOString().split('T')[0],
+    })
+    setSelectedTimelineEvent(newEvent.id)
+    setRightPanel('timeline-detail', newEvent.id)
   }
 
   const handleClick = (id: string) => {
@@ -113,7 +70,7 @@ export function TimelinePanel() {
 
   const filtered = events.filter((e) => {
     const matchesSearch = e.title.toLowerCase().includes(search.toLowerCase())
-    const matchesType = typeFilter === 'all' || e.eventType === typeFilter
+    const matchesType = typeFilter === 'all' || e.description?.toLowerCase().includes(typeFilter)
     return matchesSearch && matchesType
   })
 
@@ -154,19 +111,7 @@ export function TimelinePanel() {
       </div>
 
       <ScrollArea className="flex-1">
-        {loading ? (
-          <div className="p-4 space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-8 w-8 rounded" />
-                <div className="flex-1 space-y-1.5">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-3 w-16" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="p-6 text-center">
             <p className="text-sm text-stone-500 dark:text-stone-400">
               {events.length === 0
@@ -197,12 +142,12 @@ export function TimelinePanel() {
                     {event.date && (
                       <span className="text-[10px] text-stone-500">{event.date}</span>
                     )}
-                    {event.eventType && (
+                    {event.description && (
                       <Badge
                         variant="secondary"
-                        className={`text-[10px] px-1.5 py-0 h-4 font-normal ${EVENT_TYPE_COLORS[event.eventType] || ''}`}
+                        className={`text-[10px] px-1.5 py-0 h-4 font-normal`}
                       >
-                        {event.eventType}
+                        {event.description.slice(0, 20)}
                       </Badge>
                     )}
                   </div>

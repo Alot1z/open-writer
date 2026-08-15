@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { useWriterStore } from "@/store/writer-store"
+import { useDataStore } from "@/store/data-store"
 import { useToast } from "@/hooks/use-toast"
 import {
   AlertDialog,
@@ -63,6 +64,7 @@ function getFormatIcon(format: ImportFormat): React.ElementType {
 
 export function ImportPanel() {
   const { currentProjectId } = useWriterStore()
+  const store = useDataStore()
   const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [importing, setImporting] = useState(false)
@@ -132,34 +134,69 @@ export function ImportPanel() {
     setShowConfirm(false)
 
     try {
-      let response: Response
-
       if (fileInfo.format === "markdown") {
-        response = await fetch("/api/import/markdown", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectId: currentProjectId, content: fileInfo.content }),
-        })
+        // Parse markdown: split by ## headers into chapters
+        const lines = fileInfo.content.split('\n')
+        let currentChapterId: string | null = null
+        let currentSceneId: string | null = null
+        let sceneContent: string[] = []
+
+        for (const line of lines) {
+          if (line.startsWith('## ')) {
+            // Save previous scene
+            if (currentSceneId && sceneContent.length > 0) {
+              store.updateScene(currentSceneId, { content: sceneContent.join('\n') })
+              sceneContent = []
+            }
+            // Create new chapter
+            const ch = store.addChapter({ projectId: currentProjectId, title: line.replace('## ', '').trim() })
+            currentChapterId = ch.id
+            const sc = store.addScene({ projectId: currentProjectId, chapterId: ch.id, title: 'Content', content: '', wordCount: 0 })
+            currentSceneId = sc.id
+          } else if (line.startsWith('### ') && currentChapterId) {
+            // Save previous scene
+            if (currentSceneId && sceneContent.length > 0) {
+              store.updateScene(currentSceneId, { content: sceneContent.join('\n') })
+              sceneContent = []
+            }
+            const sc = store.addScene({ projectId: currentProjectId, chapterId: currentChapterId, title: line.replace('### ', '').trim(), content: '', wordCount: 0 })
+            currentSceneId = sc.id
+          } else if (currentSceneId) {
+            sceneContent.push(line)
+          }
+        }
+        // Save last scene
+        if (currentSceneId && sceneContent.length > 0) {
+          store.updateScene(currentSceneId, { content: sceneContent.join('\n') })
+        }
       } else if (fileInfo.format === "json") {
         const data = JSON.parse(fileInfo.content)
-        response = await fetch("/api/import/json", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectId: currentProjectId, data }),
-        })
+        // Import chapters if present
+        if (data.chapters) {
+          for (const ch of data.chapters) {
+            store.addChapter({ ...ch, projectId: currentProjectId })
+          }
+        }
+        if (data.scenes) {
+          for (const sc of data.scenes) {
+            store.addScene({ ...sc, projectId: currentProjectId })
+          }
+        }
+        if (data.characters) {
+          for (const c of data.characters) {
+            store.addCharacter({ ...c, projectId: currentProjectId })
+          }
+        }
+        if (data.locations) {
+          for (const l of data.locations) {
+            store.addLocation({ ...l, projectId: currentProjectId })
+          }
+        }
       } else {
+        // Plain text: create a single chapter with the content
         const title = fileInfo.name.replace(/\.[^/.]+$/, "")
-        response = await fetch("/api/import/text", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ projectId: currentProjectId, content: fileInfo.content, title }),
-        })
-      }
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || "Import failed")
+        const ch = store.addChapter({ projectId: currentProjectId, title })
+        store.addScene({ projectId: currentProjectId, chapterId: ch.id, title: 'Content', content: fileInfo.content, wordCount: fileInfo.content.split(/\s+/).length })
       }
 
       toast({
