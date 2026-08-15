@@ -1,174 +1,103 @@
-# Open Writer — Work Log
+# Open Writer - Work Log
 
 ---
 Task ID: 1
-Agent: Main Agent
-Task: Inspect repository and environment
+Agent: Main
+Task: Inspect current project state and audit all panels
 
 Work Log:
-- Inspected Next.js 16 project with Bun, Prisma/SQLite, shadcn/ui
-- Verified dev server running on port 3000
-- Checked available packages: tiptap, framer-motion, cmdk, zustand, next-themes, react-resizable-panels, dnd-kit
-- Identified 60+ shadcn/ui components available
+- Read dev.log - server running cleanly on port 3000
+- Checked git status - clean on main branch
+- Listed all 35 writer component files
+- Read left-sidebar.tsx - found 15 panel items, comments reusing NotesPanel (BUG)
+- Read writer-store.ts - PanelType missing 'docs' and 'export'
+- Read page.tsx - 3-panel resizable layout verified
+- Audited analytics, versions, health, relationships, agent panels - all have real content
+- Discovered comments-panel.tsx, docs-panel.tsx, export-side-panel.tsx are MISSING
 
 Stage Summary:
-- Project scaffold ready with all dependencies
-- SQLite database configured at db/custom.db
+- 3 critical files missing: comments-panel, docs-panel, export-side-panel
+- Comments panel wrongly reuses NotesPanel in sidebar
+- PanelType store missing 'docs' and 'export' types
+- All other panels (analytics, versions, health, relationships, agent) have real functional content
 
 ---
 Task ID: 2
-Agent: Main Agent
-Task: Architecture and database schema design
+Agent: Main
+Task: Create missing panels and fix sidebar wiring
 
 Work Log:
-- Designed comprehensive Prisma schema with 14 models
-- Models: Project, Chapter, Scene, Character, Location, StoryObject, WorldElement, TimelineEvent, Relationship, Note, Comment, ManuscriptVersion, WritingGoal, WritingSession, AgentTask
-- Pushed schema to database successfully
+- Created CommentsPanel with full CRUD (add, resolve, filter, collapsible resolved section)
+- Created DocsPanel with 9 pages (Overview, Getting Started, Editor, Story Intelligence, AI Agent, Export, Settings, Shortcuts, Tips)
+- Created ExportSidePanel with 6 format cards (Markdown, JSON, DOCX, EPUB, HTML, TXT)
+- Added 'docs' and 'export' to PanelType in writer-store.ts
+- Rewrote left-sidebar.tsx with 17 panels, 3 groups (Writing/Intelligence/Tools), separators
+- Bold active state: amber bg + white text + shadow
+- Comments panel now uses CommentsPanel (fixed from NotesPanel)
 
 Stage Summary:
-- Full domain model defined and persisted
-- All relationships and cascade deletes configured
+- All 3 missing panels created with real functional content
+- PanelType now has 17 types: chapters, characters, locations, objects, world, timeline, notes, comments, analytics, versions, agent, relationships, health, export, docs, search, settings
+- Sidebar redesigned with 3 visual groups
 
 ---
 Task ID: 3
-Agent: Main Agent
-Task: Zustand store and core infrastructure
+Agent: Main
+Task: GitHub repository setup and push
 
 Work Log:
-- Created Zustand store at src/store/writer-store.ts
-- Store manages: current project, navigation, panel switching, focus/typewriter modes, editor stats, entity selection, search/command palette state
-- Panel types: chapters, characters, locations, objects, world, timeline, notes, comments, analytics, versions, agent, health, relationships, search, settings
-- Right panel types: character-detail, location-detail, object-detail, world-detail, timeline-detail, note-detail, agent-detail
+- Created GitHub repo Alot1z/open-writer via API
+- Set repo topics: writing, novel, editor, local-first, offline, open-source, nextjs, typescript, story-intelligence, ai, prisma, sqlite, tiptap
+- Created README.md, LICENSE (AGPL-3.0), CONTRIBUTING.md, SECURITY.md, CHANGELOG.md
+- Created GitHub issue/PR templates
+- Created CI workflow (.github/workflows/ci.yml) with lint, build, security jobs
+- Created Pages deployment workflow (.github/workflows/deploy-pages.yml)
+- Pushed all code to main branch
+- Removed token from git remote URL after push
 
 Stage Summary:
-- Central state management ready for all components
-- 15+ panel types supported
+- Repo: https://github.com/Alot1z/open-writer
+- License: AGPL-3.0
+- CI configured: lint + typecheck, build, security audit
+- All code pushed and verified
 
 ---
-Task ID: 4-a
-Agent: Subagent (full-stack-developer)
-Task: Build all API routes
+Task ID: 4
+Agent: Main
+Task: Dramatic design overhaul
 
 Work Log:
-- Created 22 API route files with full CRUD operations
-- Routes: projects, chapters, scenes, characters, locations, objects, world, timeline, notes, comments, versions, goals, relationships, search, agent
-- Implemented auto word count from HTML content
-- Implemented auto ordering for chapters and scenes
-- Goal upsert logic for writing goals
+- Project Picker: Bold amber pen icon, serif title, feature badges (Offline/Private/Yours)
+- Project Picker: Hover states with amber highlights, date badges, tagline "Your words. Your data. Your rules."
+- Top Bar: Amber brand mark (pen icon in amber square), prominent word count with amber accent
+- Top Bar: Export button always visible, mode toggles with amber active state
+- Status Bar: Open Writer badge "OW", amber mode indicators
+- Left Sidebar: Amber active state with shadow, 3 panel groups with separators
 
 Stage Summary:
-- Complete REST API for all domain entities
-- Proper error handling and status codes
-
----
-Task ID: 4-b
-Agent: Subagent (full-stack-developer)
-Task: Build main page layout and rich text editor
-
-Work Log:
-- Built 3-panel resizable layout with react-resizable-panels
-- Created TipTap rich text editor with 15+ extensions
-- Built chapter/scene tree with context menus
-- Built top bar, status bar, project picker
-- Focus mode and typewriter mode support
-- Autosave with 1.5s debounce
-- Warm stone/amber design palette, serif typography for editor
-
-Stage Summary:
-- Complete writing studio layout
-- Professional editor with toolbar, autosave, word count
-
----
-Task ID: 4-c
-Agent: Subagent (full-stack-developer)
-Task: Build entity panel components
-
-Work Log:
-- Created 15 components: characters, locations, objects, world, timeline, notes, analytics, health, versions panels + 6 detail panels
-- All panels with search, filter, CRUD operations
-- Auto-save on field change with debounced PUT
-- Empty states, loading skeletons, delete confirmation
-- Tag management with Enter-to-add
-
-Stage Summary:
-- All entity panels functional
-- Character detail with all fields, relationships, tags
-- Project health with deterministic checks
-
----
-Task ID: 4-d
-Agent: Subagent (full-stack-developer)
-Task: Build AI agent, search, and settings
-
-Work Log:
-- Built AI agent panel with 6 quick actions
-- Built command palette (Ctrl+K) with 22+ commands
-- Built global search with results grouped by type
-- Built settings dialog with 7 tabs
-- Built relationships panel with color-coded types
-- Created AI provider abstraction (Z.ai + null provider)
-- Privacy indicators for remote AI
-
-Stage Summary:
-- Full AI agent system with tool calling architecture
-- Command palette and global search working
-- Settings organized by category
+- Bold visual identity with amber (#f59e0b) as primary accent
+- Professional serif typography for branding
+- Feature badges on project picker communicate core values
+- Brand mark in top bar creates strong visual anchor
 
 ---
 Task ID: 5
-Agent: Main Agent
-Task: Integration and browser verification
+Agent: Main
+Task: Browser verification
 
 Work Log:
-- Updated left-sidebar.tsx to render all 15 panels
-- Updated page.tsx with all detail panels in right panel
-- Updated layout.tsx with ThemeProvider for dark mode
-- Added custom CSS writer theme tokens and TipTap styles
-- Browser verified: project creation, chapter/scene creation, writing, autosave
-- Browser verified: Characters panel, World panel, Analytics panel, AI Agent panel, Health panel
-- Browser verified: Command palette with Ctrl+K
-- Lint clean, no console errors
+- Opened localhost:3000 in agent-browser
+- Project picker renders with "Open Writer" title and project card
+- Clicked project - 3-panel resizable layout renders correctly
+- Verified all 15 unique panels by clicking sidebar icons:
+  Chapters, Characters, Locations, Objects, World, Timeline, Notes, Comments, Analytics, Versions, AI Agent, Relationships, Health, Export, Docs
+- All panels render without errors
+- No console errors or warnings
+- No page errors
+- Resizable panel layout works (1 panel group, 3 panels, 31 buttons)
 
 Stage Summary:
-- All features browser-verified and working
-- Data persists across interactions (autosave)
-- Design: warm stone/amber palette, calm writing environment
-
----
-Task ID: 9
-Agent: Main Agent
-Task: Comprehensive audit, bug fixes, and feature completion
-
-Work Log:
-- Completed full repository audit: 134 source files, 34 writer components, 40 API routes
-- Inspected /home/user_skills/: found dsh-glm, hybrid-llm, taste (design), dbx, super-workspace
-- /DSH-GLM not accessible; zai-report not found; SUPERrr-FREE not standalone (taste skill provides similar capability)
-- Environment: Debian 13 on Kata Containers (kangaroo kernel), Bun 1.3.14, 9.9GB disk
-- Created docs/status/current-audit.md with full feature classification
-- Created docs/+STATUS.md with project status tracking
-- Created docs/development/user-skills-inventory.md
-- Fixed 7 critical/moderate bugs:
-  1. AgentTaskView prop mismatch (crash fix)
-  2. Detail components now accept id props (rightPanelEntityId routing)
-  3. Analytics sessions fetch fixed (was hitting /api/goals twice)
-  4. TopBar settings button now functional via store
-  5. Auto-version on scene save (5-minute dedup)
-  6. Version restore button with confirmation dialog
-  7. Zustand store persistence (localStorage)
-- Built Export system: Markdown, JSON, DOCX, EPUB, HTML, TXT (6 formats)
-- Built Import system: Markdown, JSON, plain text
-- Built Backup/Restore: Full project backup with SHA-256 checksum, restore with verification
-- Built Writing Sprints: Time-based and word-based, timer, WPM tracking, completion animation
-- Built Writing Session Tracking: Automatic session recording via useWritingSession hook
-- Built Goals Panel: Create/edit/delete goals with progress tracking
-- Built Typewriter Mode: Real scroll-to-cursor behavior in TipTap editor
-- Built Flow Widget: Compact floating widget with today's words, session, streak
-- Built Export/Import/Backup panels integrated into Settings dialog
-- All lint checks pass clean
-
-Stage Summary:
-- &34 writer components, 40 API routes, 134 total source files
-- All critical bugs fixed
-- Export (6 formats), Import (3 formats), Backup/Restore working
-- Writing sprints, session tracking, goals, typewriter mode all implemented
-- Application fully functional with autosave, versioning, and AI integration
+- All 15 sidebar panels verified working in browser
+- No errors in dev log, browser console, or page errors
+- 3-panel resizable layout functioning correctly
+- Design overhaul visually confirmed (amber accents, serif title, feature badges)
