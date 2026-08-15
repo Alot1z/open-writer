@@ -9,11 +9,14 @@ import { ObjectsPanel } from './objects-panel'
 import { WorldPanel } from './world-panel'
 import { TimelinePanel } from './timeline-panel'
 import { NotesPanel } from './notes-panel'
+import { CommentsPanel } from './comments-panel'
 import { AnalyticsPanel } from './analytics-panel'
 import { AgentPanel } from './agent-panel'
 import { RelationshipsPanel } from './relationships-panel'
 import { HealthPanel } from './health-panel'
 import { VersionsPanel } from './versions-panel'
+import { ExportSidePanel } from './export-side-panel'
+import { DocsPanel } from './docs-panel'
 import { GlobalSearch } from './global-search'
 import { SettingsDialogWithTrigger } from './settings-dialog'
 import { Button } from '@/components/ui/button'
@@ -39,10 +42,13 @@ import {
   GitBranch,
   Activity,
   Heart,
+  Download,
+  FileText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const panelItems: { id: PanelType; icon: React.ElementType; label: string }[] = [
+  // Writing
   { id: 'chapters', icon: BookOpen, label: 'Chapters' },
   { id: 'characters', icon: Users, label: 'Characters' },
   { id: 'locations', icon: MapPin, label: 'Locations' },
@@ -51,14 +57,23 @@ const panelItems: { id: PanelType; icon: React.ElementType; label: string }[] = 
   { id: 'timeline', icon: Clock, label: 'Timeline' },
   { id: 'notes', icon: StickyNote, label: 'Notes' },
   { id: 'comments', icon: MessageSquare, label: 'Comments' },
+  // separator after index 7
+  // Intelligence
   { id: 'analytics', icon: BarChart3, label: 'Analytics' },
   { id: 'versions', icon: GitBranch, label: 'Versions' },
   { id: 'agent', icon: Bot, label: 'AI Agent' },
   { id: 'relationships', icon: Heart, label: 'Relationships' },
   { id: 'health', icon: Activity, label: 'Health' },
+  // separator after index 12
+  // Tools
+  { id: 'export', icon: Download, label: 'Export' },
+  { id: 'docs', icon: FileText, label: 'Docs' },
   { id: 'search', icon: Search, label: 'Search' },
   { id: 'settings', icon: Settings, label: 'Settings' },
 ]
+
+// Indices where separators should appear AFTER the item
+const SEPARATOR_AFTER = new Set([7, 12])
 
 interface LeftSidebarProps {
   className?: string
@@ -84,7 +99,7 @@ export function LeftSidebar({ className }: LeftSidebarProps) {
       case 'notes':
         return <NotesPanel />
       case 'comments':
-        return <NotesPanel /> // Comments uses notes panel with different filter
+        return <CommentsPanel />
       case 'analytics':
         return <AnalyticsPanel />
       case 'versions':
@@ -95,6 +110,10 @@ export function LeftSidebar({ className }: LeftSidebarProps) {
         return <RelationshipsPanel />
       case 'health':
         return <HealthPanel />
+      case 'export':
+        return <ExportSidePanel />
+      case 'docs':
+        return <DocsPanel />
       case 'search':
         return <GlobalSearch />
       case 'settings':
@@ -117,16 +136,15 @@ export function LeftSidebar({ className }: LeftSidebarProps) {
           const isActive = leftPanel === item.id
           return (
             <React.Fragment key={item.id}>
-              {idx === 8 && <Separator className="w-5 my-1" />}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
                     className={cn(
-                      'h-7 w-7 rounded-md transition-colors',
+                      'h-7 w-7 rounded-md transition-all duration-150',
                       isActive
-                        ? 'bg-accent text-accent-foreground'
+                        ? 'bg-amber-500 text-white shadow-sm shadow-amber-500/30'
                         : 'text-muted-foreground hover:text-foreground hover:bg-accent/30',
                     )}
                     onClick={() => setLeftPanel(item.id)}
@@ -138,6 +156,7 @@ export function LeftSidebar({ className }: LeftSidebarProps) {
                   {item.label}
                 </TooltipContent>
               </Tooltip>
+              {SEPARATOR_AFTER.has(idx) && <Separator className="w-5 my-1" />}
             </React.Fragment>
           )
         })}
@@ -145,7 +164,7 @@ export function LeftSidebar({ className }: LeftSidebarProps) {
 
       {/* Panel Content */}
       <div className="flex-1 min-w-0 flex flex-col">
-        <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-writer-border">
+        <div className="px-3 py-2 text-xs font-semibold text-foreground/80 uppercase tracking-wider border-b border-writer-border bg-writer-surface/20">
           {panelItems.find((p) => p.id === leftPanel)?.label || 'Chapters'}
         </div>
         <div className="flex-1 overflow-hidden">
