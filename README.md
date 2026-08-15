@@ -2,140 +2,144 @@
 
 **Local-first, open-source writing studio with story intelligence**
 
-[![Open Source](https://img.shields.io/badge/Open_Source-Yes-21c55e?style=flat-square)](https://github.com/open-writer/open-writer)
+[![Open Source](https://img.shields.io/badge/Open_Source-Yes-21c55e?style=flat-square)](https://github.com/Alot1z/open-writer)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-0ea5e9?style=flat-square)](https://www.gnu.org/licenses/agpl-3.0)
 [![Next.js 16](https://img.shields.io/badge/Next.js-16-000000?style=flat-square)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?style=flat-square)](https://www.typescriptlang.org/)
 
----
+> **Live app:** https://Alot1z.github.io/open-writer/ — the full writing
+> application runs entirely in your browser on GitHub Pages.
+
+## What this is
+
+Open Writer is a **genuinely functional web application** — not a landing
+page. The entire writing studio (projects, chapters, scenes, rich text
+editing, story intelligence, versions, search, imports, exports, backups)
+runs client-side and persists to **IndexedDB in your own browser**. There
+is no server, no account, and no cloud dependency. Deploy it anywhere that
+can serve static files: GitHub Pages, Netlify, Vercel, nginx, or a USB stick.
 
 ## Features
 
-### Local-First & Offline
+### Writing
 
-- **Local-first storage** -- Your data stays on your machine by default
-- **Offline-capable** -- Write anywhere, anytime, without an internet connection
-- **No account required** -- Start writing immediately, no sign-up or cloud dependency
+- **Rich text editor** — TipTap with formatting, headings, links, images, tasks
+- **Projects, chapters, scenes** — full CRUD with automatic ordering and word counts
+- **Autosave** — 1.5s debounce with automatic version snapshots (5-minute dedup)
+- **Version history** — autosaves, milestones, restore
+- **Focus mode & typewriter mode**
+- **Word/character counts**, writing sprints, session tracking, goals, analytics
+- **Global search** across manuscript, characters, locations, notes, world, objects
+- **Command palette** (Ctrl+K)
 
-### Story Intelligence
+### Story intelligence
 
-- **Characters** -- Create and manage detailed character profiles with traits, backstory, and arcs
-- **Locations** -- Build your world with rich location entries and descriptions
-- **Objects** -- Track important items, artifacts, and their significance
-- **World-building** -- Organize lore, rules, and systems for your fictional universe
-- **Timeline** -- Visualize and manage the chronological sequence of events
-- **Relationships** -- Map connections between characters, locations, and objects
+- Characters, locations, objects, world-building (10 categories)
+- Timeline events (flexible dates, cause/consequence)
+- Relationship graph, notes, comments
+- Project health checks (deterministic)
 
-### Writing Tools
+### Import, export & backup
 
-- **AI Writing Assistant** -- Optional AI-powered suggestions, continuation, and analysis
-- **Rich Text Editor** -- Full-featured editor based on TipTap with formatting, headings, and more
-- **Version History** -- Track every change and restore previous versions
-- **Focus & Typewriter Mode** -- Distraction-free writing with typewriter-style scrolling
-- **Writing Goals & Sprints** -- Set word count targets and timed writing sessions
+- **Export:** Markdown, JSON, DOCX, HTML, TXT, EPUB (self-contained generator)
+- **Import:** Markdown, JSON, plain text
+- **Backup & restore** — full project snapshot with SHA-256 checksum verification
 
-### Export & Import
+### AI (optional, opt-in)
 
-- **Export formats** -- DOCX, PDF, EPUB, Markdown, HTML, TXT, JSON
-- **Import support** -- Markdown, plain text, JSON
-- **Backup & Restore** -- Full project backup with one-click restore
+- Providers: Z.ai (OpenAI-compatible), Ollama (local), or any custom
+  OpenAI-compatible endpoint
+- AI is **disabled by default**; when enabled you configure the endpoint and
+  key yourself in Settings → AI. Keys are stored only in your browser and
+  sent only to the endpoint you configured
+- Permission levels: read-only / suggest / write-with-confirmation / full access
 
-### Customization
+### Design
 
-- **Dark/Light Theme** -- System-aware theme with manual toggle
-- **Project Health Monitor** -- Track writing progress, consistency, and project completeness
-- **3-Panel Layout** -- Resizable sidebar, editor, and detail panels for efficient workflow
+- Warm stone/amber design system, dark/light/system themes
+- Resizable 3-panel layout, responsive down to mobile
+- Keyboard-driven: command palette, focus mode (Ctrl+\)
 
----
+## Tech stack
 
-## Tech Stack
+| Category         | Technology                                                |
+| ---------------- | --------------------------------------------------------- |
+| Framework        | Next.js 16 (App Router, static export)                    |
+| Language         | TypeScript 5 (strict, zero `ts-ignore`)                   |
+| Editor           | TipTap 3                                                  |
+| Persistence      | IndexedDB (browser-local, zero dependencies)              |
+| State Management | Zustand                                                   |
+| UI Components    | shadcn/ui + Radix                                         |
+| Styling          | Tailwind CSS 4                                            |
+| Deployment       | GitHub Pages (static `out/` artifact)                     |
 
-| Category         | Technology                                          |
-| ---------------- | --------------------------------------------------- |
-| Framework        | [Next.js 16](https://nextjs.org/) (App Router)      |
-| Language         | [TypeScript 5](https://www.typescriptlang.org/)      |
-| Editor           | [TipTap](https://tiptap.dev/)                       |
-| Database         | [Prisma](https://www.prisma.io/) / SQLite            |
-| State Management | [Zustand](https://zustand-demo.pmnd.rs/)             |
-| UI Components    | [shadcn/ui](https://ui.shadcn.com/)                  |
-| Styling          | [Tailwind CSS 4](https://tailwindcss.com/)           |
-| Theming          | [next-themes](https://github.com/nextauthjs/next-themes) |
+There is **no server runtime**: no Node.js server, no Prisma, no SQLite on
+the server. Every feature that used to run through API routes now runs
+through `src/lib/local-api/` — a browser-local domain layer that serves the
+same REST contracts (`GET/POST/PUT/DELETE /api/...`) from IndexedDB via a
+fetch shim installed at startup. The UI components are unchanged.
 
----
+## Getting started
 
-## Getting Started
-
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) 18 or later
-- [Bun](https://bun.sh/) runtime
-
-### Installation
+Prerequisites: [Bun](https://bun.sh/) (or Node.js 20+).
 
 ```bash
-# Clone the repository
-git clone https://github.com/open-writer/open-writer.git
+git clone https://github.com/Alot1z/open-writer.git
 cd open-writer
-
-# Install dependencies
 bun install
-
-# Push database schema
-bun run db:push
-
-# Start the development server
 bun run dev
 ```
 
-The application will be available at `http://localhost:3000`.
+The application is available at `http://localhost:3000`. Data is stored in
+your browser's IndexedDB.
 
-### Build for Production
+## Building the static site
 
 ```bash
-bun run build
-bun start
-```
+# Local build (root path)
+bun run build            # outputs ./out
 
----
+# GitHub Pages build (subpath)
+NEXT_PUBLIC_BASE_PATH=/open-writer bun run build
+
+# Preview the exported site exactly as Pages serves it
+node scripts/serve-out.mjs 8791   # http://127.0.0.1:8791/open-writer/
+```
 
 ## Architecture
 
-### Three-Panel Layout
+- `src/lib/local-api/` — browser-local domain layer
+  - `storage.ts` — minimal promise-based IndexedDB wrapper
+  - `services.ts` — domain services (projects, chapters, scenes, entities,
+    search, versions, backups, restore) with the same semantics as the
+    former server API
+  - `router.ts` — fetch shim that serves `/api/*` requests locally
+  - `exports.ts` — Markdown/JSON/DOCX/HTML/TXT/EPUB generators (incl. a
+    self-contained ZIP writer for EPUB)
+  - `imports.ts` — Markdown/JSON/text importers
+  - `ai.ts` — browser-side OpenAI-compatible chat client (opt-in)
+- `src/store/writer-store.ts` — Zustand UI state (persisted to localStorage)
+- `src/components/writer/` — all panels (editor, story intelligence, etc.)
 
-Open Writer uses a resizable three-panel layout optimized for long-form writing:
+## Deployment
 
-1. **Left Sidebar** -- Project navigation, chapter tree, entity panels, search
-2. **Center Editor** -- Rich text editor with toolbar, focus mode, and typewriter mode
-3. **Right Detail Panel** -- Character details, location info, AI assistant, comments
+GitHub Pages is the reference deployment:
 
-### Local-First Storage
+- `.github/workflows/ci.yml` — typecheck, lint, static build, security audit
+- `.github/workflows/deploy-pages.yml` — builds `out/` with
+  `NEXT_PUBLIC_BASE_PATH=/open-writer` and deploys it to Pages
 
-All project data is stored locally using SQLite via Prisma ORM. There is no cloud dependency. Your writing data remains on your machine at all times. Optional AI features make network requests only when explicitly invoked by the user.
-
-### AI Provider Abstraction
-
-The AI assistant uses a provider abstraction layer, allowing integration with different AI backends. The default provider can be swapped without changing application code. AI features are strictly opt-in -- no data is sent anywhere unless you explicitly request it.
-
----
+Self-hosting is equally simple: serve `out/` from any static host at any
+path, setting `NEXT_PUBLIC_BASE_PATH` accordingly at build time.
 
 ## Documentation
 
-- [Contributing Guide](./CONTRIBUTING.md) -- How to contribute to Open Writer
-- [Security Policy](./SECURITY.md) -- Reporting vulnerabilities and security practices
-- [Changelog](./CHANGELOG.md) -- Release history and changes
-
----
+- [Status](./docs/STATUS.md) — what works, what is verified, what remains
+- [Project plan](./docs/PROJECT-PLAN.md)
+- [Contributing](./CONTRIBUTING.md)
+- [Security](./SECURITY.md)
+- [Changelog](./CHANGELOG.md)
 
 ## License
 
 Open Writer is licensed under the [GNU Affero General Public License v3.0](./LICENSE).
-
-This means you can freely use, modify, and distribute Open Writer, but any modified versions that are network-accessible must also make their source code available under the same license.
-
----
-
-## Contributing
-
-We welcome contributions of all kinds. Please read our [Contributing Guide](./CONTRIBUTING.md) to get started.
-
-Whether you are fixing a bug, adding a feature, improving documentation, or sharing feedback -- your help makes Open Writer better for everyone.

@@ -82,7 +82,7 @@ export function WorldPanel() {
         const data = await res.json()
         setElements(data)
         // Auto-open categories that have elements
-        const cats = new Set(data.map((e: WorldElement) => e.category).filter(Boolean))
+        const cats = new Set<string>(data.map((e: WorldElement) => e.category).filter(Boolean))
         setOpenCategories(cats)
       }
     } catch {
