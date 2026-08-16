@@ -204,3 +204,16 @@ User feedback: most settings tabs saved values but applied nothing. Fixed across
 - AGENT panel → context scope setting (current-scene / current-chapter / full-project) builds real prompt context from IndexedDB via the shim
 
 Verified live on static build: accent rose applied on save + persisted across reload (CSS var #fb7185); focus mode starts ON after reload per setting; typecheck/lint/build green. CI + Pages deploy green on 5a81f05; live bundle contains settings module (chunk a1f762aa…: focusModeDefaults, defaultSceneStatus, autosaveInterval, versionHistoryRetention; d3615dea…/9bfe53d4…: theme-sync accent vars).
+
+## 2026-08-16 (later) — Line-by-line audit: six dead code paths wired (commit 424181b)
+
+Full manual re-read of all 37 writer components + hooks + local-api found real gaps hidden by a green typecheck:
+
+1. **use-writing-session bug** — session effect depended on editorWordCount, so every keystroke restarted the session; sessions recorded ~0 words. Fixed: ref-based count + scene word-count baseline correction. Browser-verified: 13 typed words → exactly 13 recorded (48−35).
+2. **Relationships** — showed "Entity <id6>" instead of names (service now resolves names from characters/locations/objects/world), no delete (new DELETE /api/relationships/:id + Remove button), strength bar no-op `bg-.replace()` fixed.
+3. **Versions milestone** — created with content:'' → now snapshots current scene content (verified 35 words captured).
+4. **Global search** — selecting a result only switched panels; now opens the entity (detail panel / scene via its chapter).
+5. **DOCX import** — advertised in the UI but rejected. Added browser ZIP reader (stored + deflate via DecompressionStream) → word/document.xml → markdown. Verified live export→re-import round-trip (8.7KB DOCX → 3 chapters/1 scene).
+6. **Health panel** — danglingRefs hardcoded 0 → computed from relationships pointing at missing entities.
+
+Typecheck/lint/export green; CI + Pages deploy green on 424181b; live bundle verified to contain deleteRelationship, sourceName resolution, and the DOCX importer.
