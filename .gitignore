@@ -41,6 +41,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 local-*
+
+# ...but the local-api layer is source code:
+!src/lib/local-api/
+!src/lib/local-api/**
+!src/components/local-api-bootstrap.tsx
 .claude
 .z-ai-config
 *.log
