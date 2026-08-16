@@ -8,6 +8,7 @@
  */
 
 import * as db from "./storage"
+import { loadWritingSettings } from "@/lib/settings"
 import type {
   Project,
   Chapter,
@@ -314,7 +315,7 @@ export async function createScene(body: Record<string, unknown>): Promise<Scene>
     title,
     content: "",
     order,
-    status: "draft",
+    status: typeof body.status === "string" ? body.status : "draft",
     povCharacterId: "",
     locationId: "",
     timeOfDay: "",
@@ -653,7 +654,26 @@ export async function createVersion(body: Record<string, unknown>): Promise<Manu
     createdAt: now(),
   }
   await db.putRecord("versions", version)
+  // Enforce the version retention setting from Writing settings
+  await pruneOldVersions(projectId)
   return version
+}
+
+/**
+ * Deletes autosave versions older than the configured retention period
+ * (milestones are always kept).
+ */
+export async function pruneOldVersions(projectId: string, retentionDays?: number): Promise<void> {
+  const retention = retentionDays ?? loadWritingSettings().versionHistoryRetention
+  if (retention <= 0) return
+  const cutoff = Date.now() - retention * 24 * 60 * 60 * 1000
+  const versions = await db.getAll<ManuscriptVersion>("versions")
+  const keep = versions.filter(
+    (v) => v.projectId !== projectId || !v.isAutosave || v.isMilestone || new Date(v.createdAt).getTime() >= cutoff
+  )
+  if (keep.length !== versions.length) {
+    await db.bulkPut("versions", keep)
+  }
 }
 
 // ─────────────────────────────────────────────────────────────

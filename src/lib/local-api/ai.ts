@@ -12,6 +12,8 @@
  * ever sent to the endpoint the user configured.
  */
 
+import { loadAISettings, loadPrivacySettings } from "@/lib/settings"
+
 export interface AIConfig {
   provider: "none" | "zai" | "ollama" | "custom"
   model: string
@@ -20,27 +22,21 @@ export interface AIConfig {
   apiKey: string
 }
 
-const DEFAULTS: AIConfig = {
-  provider: "none",
-  model: "glm-4.5-flash",
-  temperature: 0.7,
-  baseUrl: "https://api.z.ai/api/v1",
-  apiKey: "",
-}
-
 export function loadAIConfig(): AIConfig {
-  if (typeof window === "undefined") return DEFAULTS
-  try {
-    const raw = localStorage.getItem("openwriter-ai")
-    const stored = raw ? JSON.parse(raw) : {}
-    return { ...DEFAULTS, ...stored }
-  } catch {
-    return DEFAULTS
+  const ai = loadAISettings()
+  return {
+    provider: ai.provider,
+    model: ai.model || "default",
+    temperature: ai.temperature,
+    baseUrl: ai.baseUrl,
+    apiKey: ai.apiKey,
   }
 }
 
 export function isAIConfigured(): boolean {
   const cfg = loadAIConfig()
+  const privacy = loadPrivacySettings()
+  if (privacy.localOnlyMode && cfg.provider !== "none" && cfg.provider !== "ollama") return false
   return cfg.provider !== "none" && cfg.baseUrl.trim() !== ""
 }
 
@@ -65,8 +61,14 @@ export async function chatWithAI(
   temperature: number = 0.7
 ): Promise<string> {
   const cfg = loadAIConfig()
+  const privacy = loadPrivacySettings()
   if (cfg.provider === "none") {
     throw new Error("AI is disabled. Enable it in Settings → AI.")
+  }
+  if (privacy.localOnlyMode && cfg.provider !== "ollama") {
+    throw new Error(
+      "Local-only mode is enabled: remote AI providers are blocked. Use Ollama or turn off local-only mode in Settings → Privacy."
+    )
   }
   const baseUrl = cfg.baseUrl.trim().replace(/\/+$/, "")
   if (!baseUrl) {

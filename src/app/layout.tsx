@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { LocalApiBootstrap } from "@/components/local-api-bootstrap";
+import { ThemeSync } from "@/components/theme-sync";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,6 +39,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <LocalApiBootstrap />
+          <ThemeSync />
           {children}
           <Toaster />
         </ThemeProvider>
