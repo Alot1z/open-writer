@@ -90,6 +90,26 @@ export async function deleteRecord(store: StoreName, id: string): Promise<void> 
   await tx(store, "readwrite", (s) => s.delete(id))
 }
 
+/**
+ * Replaces the entire contents of a store with the given records.
+ * Unlike bulkPut (which only writes records and never removes any),
+ * this clears the store first so records absent from the array are
+ * actually deleted. Required for cascade deletes, project deletion,
+ * version pruning and backup restore.
+ */
+export async function replaceStore(store: StoreName, records: unknown[]): Promise<void> {
+  const db = await openDB()
+  await new Promise<void>((resolve, reject) => {
+    const t = db.transaction(store, "readwrite")
+    const s = t.objectStore(store)
+    s.clear()
+    for (const r of records) s.put(r)
+    t.oncomplete = () => resolve()
+    t.onerror = () => reject(t.error ?? new Error("IndexedDB transaction failed"))
+    t.onabort = () => reject(t.error ?? new Error("IndexedDB transaction aborted"))
+  })
+}
+
 export async function clearStore(store: StoreName): Promise<void> {
   await tx(store, "readwrite", (s) => s.clear())
 }
