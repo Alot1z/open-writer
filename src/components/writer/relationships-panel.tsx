@@ -126,10 +126,10 @@ export function RelationshipsPanel() {
             id: r.id as string,
             sourceId: r.sourceId as string,
             sourceType: r.sourceType as string,
-            sourceName: `Entity ${(r.sourceId as string).slice(0, 6)}`,
+            sourceName: (r.sourceName as string) || `Entity ${(r.sourceId as string).slice(0, 6)}`,
             targetId: r.targetId as string,
             targetType: r.targetType as string,
-            targetName: `Entity ${(r.targetId as string).slice(0, 6)}`,
+            targetName: (r.targetName as string) || `Entity ${(r.targetId as string).slice(0, 6)}`,
             type: r.type as string,
             description: (r.description || "") as string,
             strength: (r.strength || 0) as number,
@@ -177,6 +177,19 @@ export function RelationshipsPanel() {
       fetchRelationships()
     } catch (error) {
       console.error("Failed to add relationship:", error)
+    }
+  }
+
+  const handleDeleteRelationship = async (id: string) => {
+    try {
+      const res = await fetch(`/api/relationships/${id}`, { method: "DELETE" })
+      if (res.ok) {
+        setRelationships((prev) => prev.filter((r) => r.id !== id))
+      } else {
+        console.error("Failed to delete relationship:", await res.text())
+      }
+    } catch (error) {
+      console.error("Failed to delete relationship:", error)
     }
   }
 
@@ -322,7 +335,7 @@ export function RelationshipsPanel() {
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
                       <div
-                        className={`h-full rounded-full ${style.bg.replace("bg-", "bg-")}`}
+                        className={`h-full rounded-full ${style.bg}`}
                         style={{
                           width: `${strengthToWidth(rel.strength)}%`,
                         }}
@@ -339,6 +352,19 @@ export function RelationshipsPanel() {
                       {rel.description}
                     </p>
                   )}
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-end pt-0.5">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-5 px-1.5 text-[9px] gap-1 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDeleteRelationship(rel.id)}
+                    >
+                      <X className="size-2.5" />
+                      Remove
+                    </Button>
+                  </div>
                 </div>
               )
             })}

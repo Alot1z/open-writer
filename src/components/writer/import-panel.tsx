@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Upload, Loader2, FileText, FileJson, File, FileType, X, CheckCircle } from "lucide-react"
 
-type ImportFormat = "markdown" | "json" | "text"
+type ImportFormat = "markdown" | "json" | "text" | "docx"
 
 interface FileInfo {
   name: string
@@ -45,6 +45,8 @@ function detectFormat(filename: string): ImportFormat | null {
       return "json"
     case "txt":
       return "text"
+    case "docx":
+      return "docx"
     default:
       return null
   }
@@ -58,6 +60,8 @@ function getFormatIcon(format: ImportFormat): React.ElementType {
       return FileJson
     case "text":
       return File
+    case "docx":
+      return FileType
   }
 }
 
@@ -76,7 +80,7 @@ export function ImportPanel() {
     if (!format) {
       toast({
         title: "Unsupported format",
-        description: "Supported formats: .md, .json, .txt",
+        description: "Supported formats: .md, .json, .txt, .docx",
         variant: "destructive",
       })
       return
@@ -93,6 +97,19 @@ export function ImportPanel() {
 
     const reader = new FileReader()
     reader.onload = (e) => {
+      if (format === "docx") {
+        // Binary file: keep the ArrayBuffer for base64 upload; no text preview
+        const buf = e.target?.result as ArrayBuffer
+        setFileInfo({
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          format,
+          content: buf as unknown as string,
+          preview: "",
+        })
+        return
+      }
       const content = e.target?.result as string
       const preview = content.slice(0, 500)
       setFileInfo({
@@ -104,7 +121,8 @@ export function ImportPanel() {
         preview,
       })
     }
-    reader.readAsText(file)
+    if (format === "docx") reader.readAsArrayBuffer(file)
+    else reader.readAsText(file)
   }, [toast])
 
   const handleDrop = useCallback(
@@ -134,7 +152,24 @@ export function ImportPanel() {
     try {
       let response: Response
 
-      if (fileInfo.format === "markdown") {
+      if (fileInfo.format === "docx") {
+        const buf = fileInfo.content as unknown as ArrayBuffer
+        let binary = ""
+        const bytes = new Uint8Array(buf)
+        const chunk = 0x8000
+        for (let i = 0; i < bytes.length; i += chunk) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + chunk))
+        }
+        response = await fetch("/api/import/docx", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            projectId: currentProjectId,
+            base64: btoa(binary),
+            title: fileInfo.name.replace(/.[^/.]+$/, ""),
+          }),
+        })
+      } else if (fileInfo.format === "markdown") {
         response = await fetch("/api/import/markdown", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -207,7 +242,7 @@ export function ImportPanel() {
         <Upload className="size-8 mx-auto mb-2 text-muted-foreground" />
         <p className="text-xs font-medium">Drop a file here or click to browse</p>
         <p className="text-[10px] text-muted-foreground mt-1">
-          Supported: .md, .json, .txt
+          Supported: .md, .json, .txt, .docx
         </p>
       </div>
 

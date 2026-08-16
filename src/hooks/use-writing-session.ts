@@ -23,6 +23,11 @@ export function useWritingSession() {
   const lastWordCountRef = useRef(editorWordCount)
   const INACTIVITY_TIMEOUT = 5 * 60 * 1000 // 5 minutes
 
+  // Keep the ref in sync without re-running the session effect below.
+  useEffect(() => {
+    lastWordCountRef.current = editorWordCount
+  }, [editorWordCount])
+
   // Save a session to the API
   const saveSession = useCallback(async (session: ActiveSession, endWordCount: number) => {
     if (session.saved) return
@@ -70,7 +75,9 @@ export function useWritingSession() {
     })
   }, [saveSession])
 
-  // Start a new session when scene changes
+  // Start a new session when scene changes. Deliberately does NOT depend on
+  // editorWordCount: word-count changes must only update the ref, otherwise
+  // every keystroke would end + restart the session (wiping word counts).
   useEffect(() => {
     // End previous session if one exists
     setActiveSession((prev) => {
@@ -78,7 +85,9 @@ export function useWritingSession() {
         saveSession(prev, lastWordCountRef.current)
       }
 
-      // Start new session if we have a scene
+      // Start new session if we have a scene. Use the scene's own word
+      // count when available (the editor store may still be at 0 while the
+      // scene content loads, which would overcount the session).
       if (currentSceneId && currentProjectId) {
         lastWordCountRef.current = editorWordCount
         return {
@@ -90,6 +99,24 @@ export function useWritingSession() {
       }
       return null
     })
+    // Correct the start count once the scene's real word count is known
+    if (currentSceneId && currentProjectId) {
+      fetch(`/api/scenes/${currentSceneId}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((scene) => {
+          if (scene && typeof scene.wordCount === "number" && scene.wordCount > 0) {
+            setActiveSession((prev) =>
+              prev && prev.sceneId === currentSceneId && prev.startWordCount < scene.wordCount
+                ? { ...prev, startWordCount: scene.wordCount }
+                : prev
+            )
+            if (lastWordCountRef.current < scene.wordCount) {
+              lastWordCountRef.current = scene.wordCount
+            }
+          }
+        })
+        .catch(() => {})
+    }
 
     return () => {
       // Cleanup on unmount
@@ -100,7 +127,7 @@ export function useWritingSession() {
         return null
       })
     }
-  }, [currentSceneId, currentProjectId, editorWordCount, saveSession])
+  }, [currentSceneId, currentProjectId, saveSession])
 
   // Track word count changes and reset inactivity timer
   useEffect(() => {

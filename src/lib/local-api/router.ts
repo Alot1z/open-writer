@@ -261,6 +261,11 @@ const routes: { pattern: string; handler: Handler }[] = [
       return json(await s.listRelationships(projectId))
     } },
   { pattern: "POST /api/relationships", handler: async (ctx) => json(await s.createRelationship(ctx.body), 201) },
+  { pattern: "DELETE /api/relationships/:id", handler: async (ctx) => {
+      const ok = await s.deleteRelationship(ctx.pathParams.id)
+      if (!ok) return error("Relationship not found", 404)
+      return json({ success: true })
+    } },
 
   // Goals
   { pattern: "GET /api/goals", handler: async (ctx) => {
@@ -439,6 +444,21 @@ const routes: { pattern: string; handler: Handler }[] = [
       }
       const imported = await imports.importText(String(projectId), content, typeof title === "string" ? title : undefined)
       return json({ success: true, imported })
+    } },
+  { pattern: "POST /api/import/docx", handler: async (ctx) => {
+      const { projectId, base64, title } = ctx.body
+      if (!projectId || typeof base64 !== "string") {
+        return error("projectId and base64 (string) are required", 400)
+      }
+      try {
+        const bin = atob(base64)
+        const bytes = new Uint8Array(bin.length)
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+        const imported = await imports.importDocx(String(projectId), bytes, typeof title === "string" ? title : undefined)
+        return json({ success: true, imported })
+      } catch (e) {
+        return error(e instanceof Error ? e.message : "DOCX import failed", 400)
+      }
     } },
 ]
 

@@ -122,6 +122,7 @@ export function GlobalSearch() {
               name: (s.title || "Untitled Scene") as string,
               description: s.notes ? (s.notes as string).slice(0, 100) : undefined,
               type: "scenes",
+              chapterId: ((s.chapter as Record<string, unknown> | null)?.id as string) || undefined,
             })),
             characters: (data.characters || []).map((c: Record<string, unknown>) => ({
               id: c.id as string,
@@ -178,6 +179,7 @@ export function GlobalSearch() {
   const totalResults = allResults.length
 
   const handleSelect = (result: SearchResult) => {
+    const st = useWriterStore.getState()
     const panelMap: Record<string, string> = {
       scenes: "chapters",
       characters: "characters",
@@ -188,7 +190,23 @@ export function GlobalSearch() {
     }
     const panel = panelMap[result.type]
     if (panel) {
-      useWriterStore.getState().setLeftPanel(panel as never)
+      st.setLeftPanel(panel as never)
+    }
+    // Open the actual entity, not just the panel
+    const detailMap: Record<string, string> = {
+      characters: "character-detail",
+      locations: "location-detail",
+      objects: "object-detail",
+      notes: "note-detail",
+      worldElements: "world-detail",
+    }
+    const detail = detailMap[result.type]
+    if (detail) {
+      st.setRightPanel(detail as never, result.id)
+    } else if (result.type === "scenes") {
+      const ch = (result as SearchResult & { chapterId?: string }).chapterId
+      if (ch) st.setCurrentChapter(ch)
+      st.setCurrentScene(result.id)
     }
     setSearchOpen(false)
   }

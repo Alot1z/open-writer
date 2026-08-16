@@ -94,13 +94,22 @@ export function VersionsPanel() {
   const handleCreateMilestone = async () => {
     if (!currentProjectId) return
     try {
+      // Snapshot the current scene content so the milestone is restorable
+      let snapshotContent = ''
+      if (currentSceneId) {
+        const sceneRes = await fetch(`/api/scenes/${currentSceneId}`)
+        if (sceneRes.ok) {
+          const scene = await sceneRes.json()
+          snapshotContent = scene.content || ''
+        }
+      }
       const res = await fetch('/api/versions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           projectId: currentProjectId,
           sceneId: currentSceneId || null,
-          content: '',
+          content: snapshotContent,
           label: 'Milestone',
           isMilestone: true,
           isAutosave: false,
