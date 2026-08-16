@@ -63,3 +63,9 @@ server.log
 # local-api tooling artifacts
 .freebuff/
 .zscripts/dev.pid
+
+# electron build output
+/dist/
+
+# one-off mutation scripts
+/scripts/patch-replace-store.mjs

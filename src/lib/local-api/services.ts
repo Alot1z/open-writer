@@ -187,20 +187,20 @@ export async function deleteProject(id: string): Promise<boolean> {
   const projectScenes = scenes.filter((s) => chapterIds.has(s.chapterId))
   const sceneIds = new Set(projectScenes.map((s) => s.id))
 
-  await db.bulkPut("chapters", chapters.filter((c) => c.projectId !== id))
-  await db.bulkPut("scenes", scenes.filter((s) => !chapterIds.has(s.chapterId)))
-  await db.bulkPut("characters", characters.filter((c) => c.projectId !== id))
-  await db.bulkPut("locations", locations.filter((l) => l.projectId !== id))
-  await db.bulkPut("storyObjects", storyObjects.filter((o) => o.projectId !== id))
-  await db.bulkPut("worldElements", worldElements.filter((w) => w.projectId !== id))
-  await db.bulkPut("timelineEvents", timelineEvents.filter((e) => e.projectId !== id))
-  await db.bulkPut("relationships", relationships.filter((r) => r.projectId !== id))
-  await db.bulkPut("notes", notes.filter((n) => n.projectId !== id))
-  await db.bulkPut("comments", comments.filter((c) => c.projectId !== id || (c.sceneId && sceneIds.has(c.sceneId))))
-  await db.bulkPut("versions", versions.filter((v) => v.projectId !== id || (v.sceneId && sceneIds.has(v.sceneId))))
-  await db.bulkPut("goals", goals.filter((g) => g.projectId !== id))
-  await db.bulkPut("sessions", sessions.filter((s) => s.projectId !== id))
-  await db.bulkPut("agentTasks", tasks.filter((t) => t.projectId !== id))
+  await db.replaceStore("chapters", chapters.filter((c) => c.projectId !== id))
+  await db.replaceStore("scenes", scenes.filter((s) => !chapterIds.has(s.chapterId)))
+  await db.replaceStore("characters", characters.filter((c) => c.projectId !== id))
+  await db.replaceStore("locations", locations.filter((l) => l.projectId !== id))
+  await db.replaceStore("storyObjects", storyObjects.filter((o) => o.projectId !== id))
+  await db.replaceStore("worldElements", worldElements.filter((w) => w.projectId !== id))
+  await db.replaceStore("timelineEvents", timelineEvents.filter((e) => e.projectId !== id))
+  await db.replaceStore("relationships", relationships.filter((r) => r.projectId !== id))
+  await db.replaceStore("notes", notes.filter((n) => n.projectId !== id))
+  await db.replaceStore("comments", comments.filter((c) => c.projectId !== id || (c.sceneId && sceneIds.has(c.sceneId))))
+  await db.replaceStore("versions", versions.filter((v) => v.projectId !== id || (v.sceneId && sceneIds.has(v.sceneId))))
+  await db.replaceStore("goals", goals.filter((g) => g.projectId !== id))
+  await db.replaceStore("sessions", sessions.filter((s) => s.projectId !== id))
+  await db.replaceStore("agentTasks", tasks.filter((t) => t.projectId !== id))
   await db.deleteRecord("projects", id)
   return true
 }
@@ -285,9 +285,9 @@ export async function deleteChapter(id: string): Promise<boolean> {
   ])
   const chapterScenes = scenes.filter((s) => s.chapterId === id)
   const sceneIds = new Set(chapterScenes.map((s) => s.id))
-  await db.bulkPut("scenes", scenes.filter((s) => s.chapterId !== id))
-  await db.bulkPut("comments", comments.filter((c) => !(c.sceneId && sceneIds.has(c.sceneId))))
-  await db.bulkPut("versions", versions.filter((v) => !(v.sceneId && sceneIds.has(v.sceneId))))
+  await db.replaceStore("scenes", scenes.filter((s) => s.chapterId !== id))
+  await db.replaceStore("comments", comments.filter((c) => !(c.sceneId && sceneIds.has(c.sceneId))))
+  await db.replaceStore("versions", versions.filter((v) => !(v.sceneId && sceneIds.has(v.sceneId))))
   await db.deleteRecord("chapters", id)
   return true
 }
@@ -396,8 +396,8 @@ export async function deleteScene(id: string): Promise<boolean> {
     db.getAll<Comment>("comments"),
     db.getAll<ManuscriptVersion>("versions"),
   ])
-  await db.bulkPut("comments", comments.filter((c) => c.sceneId !== id))
-  await db.bulkPut("versions", versions.filter((v) => v.sceneId !== id))
+  await db.replaceStore("comments", comments.filter((c) => c.sceneId !== id))
+  await db.replaceStore("versions", versions.filter((v) => v.sceneId !== id))
   await db.deleteRecord("scenes", id)
   return true
 }
@@ -489,7 +489,7 @@ export async function deleteEntity(store: db.StoreName, id: string): Promise<boo
   if (store === "characters") {
     // Remove relationships that reference the deleted character
     const relationships = await db.getAll<Relationship>("relationships")
-    await db.bulkPut("relationships", relationships.filter((r) => r.sourceId !== id && r.targetId !== id))
+    await db.replaceStore("relationships", relationships.filter((r) => r.sourceId !== id && r.targetId !== id))
   }
   await db.deleteRecord(store, id)
   return true
@@ -697,7 +697,7 @@ export async function pruneOldVersions(projectId: string, retentionDays?: number
     (v) => v.projectId !== projectId || !v.isAutosave || v.isMilestone || new Date(v.createdAt).getTime() >= cutoff
   )
   if (keep.length !== versions.length) {
-    await db.bulkPut("versions", keep)
+    await db.replaceStore("versions", keep)
   }
 }
 
@@ -1046,20 +1046,20 @@ export async function restoreBackup(id: string, confirm: boolean): Promise<boole
   ])
   const chapterIds = new Set(chapters.filter((c) => c.projectId === projectId).map((c) => c.id))
 
-  await db.bulkPut("relationships", relationships.filter((r) => r.projectId !== projectId))
-  await db.bulkPut("notes", notes.filter((n) => n.projectId !== projectId))
-  await db.bulkPut("comments", comments.filter((c) => c.projectId !== projectId))
-  await db.bulkPut("timelineEvents", timelineEvents.filter((e) => e.projectId !== projectId))
-  await db.bulkPut("worldElements", worldElements.filter((w) => w.projectId !== projectId))
-  await db.bulkPut("storyObjects", storyObjects.filter((o) => o.projectId !== projectId))
-  await db.bulkPut("locations", locations.filter((l) => l.projectId !== projectId))
-  await db.bulkPut("characters", characters.filter((c) => c.projectId !== projectId))
-  await db.bulkPut("versions", versions.filter((v) => v.projectId !== projectId || v.id === id))
-  await db.bulkPut("sessions", sessions.filter((s) => s.projectId !== projectId))
-  await db.bulkPut("goals", goals.filter((g) => g.projectId !== projectId))
-  await db.bulkPut("agentTasks", tasks.filter((t) => t.projectId !== projectId))
-  await db.bulkPut("scenes", scenes.filter((s) => !chapterIds.has(s.chapterId)))
-  await db.bulkPut("chapters", chapters.filter((c) => c.projectId !== projectId))
+  await db.replaceStore("relationships", relationships.filter((r) => r.projectId !== projectId))
+  await db.replaceStore("notes", notes.filter((n) => n.projectId !== projectId))
+  await db.replaceStore("comments", comments.filter((c) => c.projectId !== projectId))
+  await db.replaceStore("timelineEvents", timelineEvents.filter((e) => e.projectId !== projectId))
+  await db.replaceStore("worldElements", worldElements.filter((w) => w.projectId !== projectId))
+  await db.replaceStore("storyObjects", storyObjects.filter((o) => o.projectId !== projectId))
+  await db.replaceStore("locations", locations.filter((l) => l.projectId !== projectId))
+  await db.replaceStore("characters", characters.filter((c) => c.projectId !== projectId))
+  await db.replaceStore("versions", versions.filter((v) => v.projectId !== projectId || v.id === id))
+  await db.replaceStore("sessions", sessions.filter((s) => s.projectId !== projectId))
+  await db.replaceStore("goals", goals.filter((g) => g.projectId !== projectId))
+  await db.replaceStore("agentTasks", tasks.filter((t) => t.projectId !== projectId))
+  await db.replaceStore("scenes", scenes.filter((s) => !chapterIds.has(s.chapterId)))
+  await db.replaceStore("chapters", chapters.filter((c) => c.projectId !== projectId))
 
   const str = (v: unknown) => (v === undefined || v === null ? "" : String(v))
   const num = (v: unknown, fallback = 0) => (v === undefined || v === null ? fallback : Number(v))
