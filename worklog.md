@@ -313,3 +313,19 @@ Typecheck/lint/export green; CI + Pages deploy green on 424181b; live bundle ver
 - Note: tray icon visibility itself can't be screenshot from this session
   (notification-area API access is limited); functional tray behaviors
   verified as above
+
+## 2026-08-16 — Registered the Open Writer GitHub App (one-click Connect)
+
+- Registered **Open Writer Storage** GitHub App on @Alot1z (App ID 4612293,
+  Client ID Iv23lizL3yc23wougOmX, slug open-writer-storage).
+- Name "Open Writer" is reserved (collides with @open-writer) → used
+  "Open Writer Storage".
+- `hook_attributes` in the manifest blanks the GitHub form → removed; GitHub
+  prefills the webhook from the homepage instead.
+- Device Flow is NOT a manifest field → enabled it on the app settings page
+  via browser automation (tick + Save changes); verified live:
+  `POST github.com/login/device/code` with the client id now returns HTTP 200
+  with a device_code (previously `device_flow_disabled`).
+- Wrote NEXT_PUBLIC_SYNC_CLIENT_ID to .env.local (gitignored); rebuilt the
+  static export; verified the bundle inlines the client id and has zero mock
+  URLs. One-click Connect GitHub now works on the deployed Pages site.
