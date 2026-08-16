@@ -80,6 +80,11 @@ const RELATIONSHIP_TYPES = [
   "hates",
   "knows",
   "owns",
+  "lives_at",
+  "visits",
+  "causes",
+  "participates_in",
+  "appears_in",
   "family",
   "rival",
   "friend",
@@ -90,6 +95,7 @@ const RELATIONSHIP_TYPES = [
   "belongs_to",
   "located_in",
   "created_by",
+  "related_to",
   "other",
 ]
 

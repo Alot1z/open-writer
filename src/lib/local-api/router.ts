@@ -16,6 +16,7 @@ import { ApiError } from "./services"
 import * as exports from "./exports"
 import * as imports from "./imports"
 import { chatWithAI } from "./ai"
+import { runContinuityCheck, buildStoryIndex } from "./continuity"
 
 const json = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), {
@@ -38,8 +39,8 @@ interface Ctx {
 }
 
 const COLLECTION_FIELDS: Record<string, string[]> = {
-  characters: ["name", "description", "role", "age", "occupation", "personality", "appearance", "backstory", "motivation", "goals", "fears", "tags", "metadata"],
-  locations: ["name", "description", "type", "atmosphere", "history", "features", "parentLocationId", "tags", "metadata"],
+  characters: ["name", "description", "role", "age", "occupation", "personality", "appearance", "backstory", "motivation", "goals", "fears", "knowledge", "appearances", "tags", "metadata"],
+  locations: ["name", "description", "type", "atmosphere", "history", "features", "ownership", "parentLocationId", "tags", "metadata"],
   storyObjects: ["name", "description", "type", "owner", "location", "history", "appearance", "significance", "tags", "metadata"],
   worldElements: ["name", "description", "category", "parent", "rules", "history", "tags", "metadata"],
   timelineEvents: ["title", "description", "date", "time", "duration", "location", "characters", "objects", "sourceScene", "cause", "consequence", "eventType", "tags", "metadata"],
@@ -56,8 +57,8 @@ const STORE_BY_COLLECTION: Record<string, s.StoreName> = {
 }
 
 const DEFAULT_ENTITY_FIELDS: Record<string, Record<string, unknown>> = {
-  characters: { name: "", description: "", role: "", age: "", occupation: "", personality: "", appearance: "", backstory: "", motivation: "", goals: "", fears: "", tags: "[]", metadata: "{}" },
-  locations: { name: "", description: "", type: "", atmosphere: "", history: "", features: "", parentLocationId: "", tags: "[]", metadata: "{}" },
+  characters: { name: "", description: "", role: "", age: "", occupation: "", personality: "", appearance: "", backstory: "", motivation: "", goals: "", fears: "", knowledge: "", appearances: "", tags: "[]", metadata: "{}" },
+  locations: { name: "", description: "", type: "", atmosphere: "", history: "", features: "", ownership: "", parentLocationId: "", tags: "[]", metadata: "{}" },
   storyObjects: { name: "", description: "", type: "", owner: "", location: "", history: "", appearance: "", significance: "", tags: "[]", metadata: "{}" },
   worldElements: { name: "", description: "", category: "", parent: "", rules: "", history: "", tags: "[]", metadata: "{}" },
   timelineEvents: { title: "", description: "", date: "", time: "", duration: "", location: "", characters: "[]", objects: "[]", sourceScene: "", cause: "", consequence: "", eventType: "", tags: "[]", metadata: "{}" },
@@ -367,6 +368,18 @@ const routes: { pattern: string; handler: Handler }[] = [
       if (!q || !q.trim()) return error("Search query (q) is required", 400)
       if (!projectId) return error("projectId query parameter is required", 400)
       return json(await s.searchProject(projectId, q))
+    } },
+
+  // Continuity + story knowledge index
+  { pattern: "GET /api/continuity", handler: async (ctx) => {
+      const projectId = ctx.params.get("projectId")
+      if (!projectId) return error("projectId query parameter is required", 400)
+      return json(await runContinuityCheck(projectId))
+    } },
+  { pattern: "GET /api/story-index", handler: async (ctx) => {
+      const projectId = ctx.params.get("projectId")
+      if (!projectId) return error("projectId query parameter is required", 400)
+      return json({ projectId, ...(await buildStoryIndex(projectId)) })
     } },
 
   // Backups

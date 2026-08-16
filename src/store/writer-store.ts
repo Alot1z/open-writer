@@ -16,6 +16,7 @@ export type PanelType =
   | 'versions' 
   | 'agent' 
   | 'health' 
+  | 'continuity'
   | 'relationships'
   | 'export'
   | 'docs'
