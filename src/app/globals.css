@@ -178,7 +178,7 @@
 }
 
 .tiptap p {
-  margin-bottom: 0.75em;
+  margin-bottom: var(--ow-para-spacing, 0.75em);
 }
 
 .tiptap ul,

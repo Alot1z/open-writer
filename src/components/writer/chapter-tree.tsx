@@ -1,5 +1,7 @@
 'use client'
 
+import { loadWritingSettings } from '@/lib/settings'
+
 import React, { useCallback, useEffect, useState } from 'react'
 import { useWriterStore } from '@/store/writer-store'
 import { Button } from '@/components/ui/button'
@@ -142,7 +144,11 @@ export function ChapterTree() {
       const res = await fetch('/api/scenes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chapterId: targetChapterId, title: newItemTitle.trim() }),
+        body: JSON.stringify({
+          chapterId: targetChapterId,
+          title: newItemTitle.trim(),
+          status: loadWritingSettings().defaultSceneStatus,
+        }),
       })
       if (res.ok) {
         const scene = await res.json()

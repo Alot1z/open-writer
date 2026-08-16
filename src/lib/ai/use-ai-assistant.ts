@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from "react"
 import type { AgentAction, AgentSuggestion, PermissionLevel } from "@/lib/ai/provider"
 import { PERMISSION_LABELS, PERMISSION_DESCRIPTIONS } from "@/lib/ai/provider"
+import { loadAISettings, loadPrivacySettings } from "@/lib/settings"
 
 export type AIProviderType = "zai" | "none"
 
@@ -50,13 +51,21 @@ async function chatWithAI(
 }
 
 export function useAIAssistant(): UseAIAssistantReturn {
-  const [providerType, setProviderTypeState] = useState<AIProviderType>("zai")
-  const [permission, setPermission] = useState<PermissionLevel>("suggest")
+  const initialAI = loadAISettings()
+  const initialPrivacy = loadPrivacySettings()
+  // Privacy → local-only mode forces the AI off entirely
+  const aiBlocked = initialPrivacy.localOnlyMode && initialAI.provider !== "none" && initialAI.provider !== "ollama"
+  const [providerType, setProviderTypeState] = useState<AIProviderType>(() =>
+    aiBlocked || initialAI.provider === "none" ? "none" : "zai"
+  )
+  const [permission, setPermission] = useState<PermissionLevel>(() =>
+    (initialAI.permissionLevel as PermissionLevel) || "suggest"
+  )
   const [isThinking, setIsThinking] = useState(false)
   const [actions, setActions] = useState<AgentAction[]>([])
   const [suggestions, setSuggestions] = useState<AgentSuggestion[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [temperature, setTemperature] = useState(0.7)
+  const [temperature, setTemperature] = useState(initialAI.temperature)
   const suggestionIdRef = useRef(0)
 
   const isAvailable = providerType !== "none"

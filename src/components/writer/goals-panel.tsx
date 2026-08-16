@@ -1,5 +1,7 @@
 'use client'
 
+import { loadGoalSettings } from '@/lib/settings'
+
 import React, { useEffect, useState, useCallback } from 'react'
 import { useWriterStore } from '@/store/writer-store'
 import { Button } from '@/components/ui/button'
@@ -80,8 +82,8 @@ export function GoalsPanel() {
 
   // Create form state
   const [newType, setNewType] = useState('daily_words')
-  const [newTarget, setNewTarget] = useState(1000)
-  const [newDeadline, setNewDeadline] = useState('')
+  const [newTarget, setNewTarget] = useState(() => loadGoalSettings().dailyWordGoal)
+  const [newDeadline, setNewDeadline] = useState(() => loadGoalSettings().projectDeadline)
 
   // Edit form state
   const [editTarget, setEditTarget] = useState(0)

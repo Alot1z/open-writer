@@ -25,6 +25,7 @@ import {
 import { PenLine } from "lucide-react"
 import { FlowWidget } from "@/components/writer/flow-widget"
 import { useWritingSession } from "@/hooks/use-writing-session"
+import { loadAppearanceSettings } from "@/lib/settings"
 
 export default function Home() {
   const {
@@ -42,6 +43,13 @@ export default function Home() {
 
   // Initialize automatic writing session tracking
   useWritingSession()
+
+  // Apply the appearance setting: start in focus mode if configured
+  useEffect(() => {
+    if (loadAppearanceSettings().focusModeDefaults) {
+      setFocusMode(true)
+    }
+  }, [setFocusMode])
 
   // Keyboard shortcuts
   useEffect(() => {

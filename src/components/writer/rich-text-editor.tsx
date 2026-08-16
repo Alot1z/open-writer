@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useRef } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useEditor, EditorContent, Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -38,6 +38,7 @@ import { Toggle } from '@/components/ui/toggle'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
+import { FONT_MAP, loadEditorSettings, subscribeSettings } from '@/lib/settings'
 
 interface RichTextEditorProps {
   content: string
@@ -251,6 +252,10 @@ export function RichTextEditor({
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const editorScrollRef = useRef<HTMLDivElement | null>(null)
   const typewriterRafRef = useRef<number | null>(null)
+  const [editorSettings, setEditorSettings] = useState(loadEditorSettings)
+
+  // Re-apply settings when they change (Settings dialog save)
+  useEffect(() => subscribeSettings(() => setEditorSettings(loadEditorSettings())), [])
 
   const editor = useEditor({
     extensions: [
@@ -410,7 +415,16 @@ export function RichTextEditor({
         ref={editorScrollRef}
         className={cn('flex-1 overflow-y-auto custom-scrollbar', typewriterMode && 'scroll-smooth')}
       >
-        <div className="max-w-3xl mx-auto px-8 py-6">
+        <div
+          className="mx-auto px-8 py-6"
+          style={{
+            maxWidth: editorSettings.maxWidth,
+            fontFamily: FONT_MAP[editorSettings.fontFamily],
+            fontSize: editorSettings.fontSize,
+            lineHeight: editorSettings.lineHeight,
+            ["--ow-para-spacing" as string]: editorSettings.paragraphSpacing + "rem",
+          } as React.CSSProperties}
+        >
           <EditorContent
             editor={editor}
             className="tiptap-wrapper"

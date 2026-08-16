@@ -22,6 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+
+import { notifySettingsChanged } from "@/lib/settings"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useWriterStore } from "@/store/writer-store"
 import {
@@ -163,6 +165,7 @@ export function SettingsDialog() {
     saveSettings("ai", ai as unknown as Record<string, unknown>)
     saveSettings("privacy", privacy as unknown as Record<string, unknown>)
     setSettingsOpen(false)
+    notifySettingsChanged()
   }
 
   const FONT_MAP = {

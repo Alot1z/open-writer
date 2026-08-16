@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react"
 import { useWriterStore } from "@/store/writer-store"
 import { useAIAssistant } from "@/lib/ai/use-ai-assistant"
+import { loadAISettings, loadPrivacySettings } from "@/lib/settings"
+import { stripHtml } from "@/lib/local-api/services"
 import { PERMISSION_LABELS, PERMISSION_DESCRIPTIONS } from "@/lib/ai/provider"
 import type { PermissionLevel } from "@/lib/ai/provider"
 import { Button } from "@/components/ui/button"
@@ -100,7 +102,7 @@ export function AgentPanel() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const { currentProjectId, currentProjectName, currentSceneId } =
+  const { currentProjectId, currentProjectName, currentSceneId, currentChapterId } =
     useWriterStore()
 
   const {
@@ -128,16 +130,47 @@ export function AgentPanel() {
     }
   }, [actions, suggestions])
 
-  const getContextString = (): string => {
+  // Builds context according to the AI context-scope setting. Only the
+  // requested scope is ever included in the prompt.
+  const getContextString = async (): Promise<string> => {
+    const scope = loadAISettings().contextScope
     const parts: string[] = []
     if (currentProjectName) parts.push(`Project: ${currentProjectName}`)
-    if (currentSceneId) parts.push(`Current scene active`)
-    return parts.join(", ") || "No context available"
+    try {
+      if (scope === "current-scene" && currentSceneId) {
+        const res = await fetch(`/api/scenes/${currentSceneId}`)
+        if (res.ok) {
+          const sc = await res.json()
+          parts.push(`Scene \"${sc.title}\":\n${stripHtml(sc.content ?? "").slice(0, 4000)}`)
+        }
+      } else if (scope === "current-chapter" && currentChapterId) {
+        const res = await fetch(`/api/chapters/${currentChapterId}`)
+        if (res.ok) {
+          const ch = await res.json()
+          const scenes = (ch.scenes ?? [])
+            .map((s: { title: string; content?: string }) => `## ${s.title}\n${stripHtml(s.content ?? "").slice(0, 1500)}`)
+            .join("\n\n")
+          parts.push(`Chapter \"${ch.title}\":\n${scenes.slice(0, 8000)}`)
+        }
+      } else if (scope === "full-project" && currentProjectId) {
+        const res = await fetch(`/api/chapters?projectId=${currentProjectId}`)
+        if (res.ok) {
+          const chapters = await res.json()
+          const text = (chapters as { title: string; scenes?: { title: string; content?: string }[] }[])
+            .map((c) => `# ${c.title}\n` + (c.scenes ?? []).map((s) => `## ${s.title}\n${stripHtml(s.content ?? "").slice(0, 500)}`).join("\n"))
+            .join("\n\n")
+          parts.push(text.slice(0, 12000))
+        }
+      }
+    } catch {
+      // context is best-effort; never block the AI call on it
+    }
+    return parts.join("\n\n") || "No context available"
   }
 
   const handleSend = async () => {
     if (!input.trim() || isThinking) return
-    const context = getContextString()
+    const context = await getContextString()
     setContextInfo(context)
 
     await sendMessage(input.trim(), context)
@@ -146,7 +179,7 @@ export function AgentPanel() {
 
   const handleQuickAction = async (action: (typeof QUICK_ACTIONS)[0]) => {
     if (isThinking) return
-    const context = getContextString()
+    const context = await getContextString()
     setContextInfo(`Using: ${context}`)
     await executeAction(action.prompt, context)
   }
@@ -159,6 +192,7 @@ export function AgentPanel() {
   }
 
   const providerName = PROVIDER_NAMES[providerType] || providerType
+  const showTransmissionInfo = loadPrivacySettings().showDataTransmission
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -274,7 +308,7 @@ export function AgentPanel() {
                   <div className="text-xs text-foreground/80 whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto">
                     {suggestion.content}
                   </div>
-                  {contextInfo && (
+                  {showTransmissionInfo && contextInfo && (
                     <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                       <Info className="size-3" />
                       {contextInfo}

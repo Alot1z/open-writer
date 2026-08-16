@@ -5,6 +5,7 @@ import { useWriterStore } from '@/store/writer-store'
 import { RichTextEditor } from './rich-text-editor'
 import { motion } from 'framer-motion'
 import { PenLine, FileText } from 'lucide-react'
+import { loadWritingSettings } from '@/lib/settings'
 
 interface SceneData {
   id: string
@@ -79,7 +80,8 @@ export function EditorArea({ className }: EditorAreaProps) {
       // Clear previous timer
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
 
-      // Debounced autosave (1.5 seconds)
+      // Debounced autosave (interval from Writing settings)
+      const intervalMs = Math.max(0.5, loadWritingSettings().autosaveInterval) * 1000
       autosaveTimer.current = setTimeout(async () => {
         try {
           setSaveStatus('saving')
@@ -96,7 +98,7 @@ export function EditorArea({ className }: EditorAreaProps) {
           console.error('Failed to autosave:', err)
           setSaveStatus('unsaved')
         }
-      }, 1500)
+      }, intervalMs)
     },
     [currentSceneId]
   )
