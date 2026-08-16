@@ -3,6 +3,23 @@
 **Last Updated:** 2026-08-16
 **Phase:** Local-First Migration Complete (GitHub Pages live)
 
+## Deployment (2026-08-16) ✅
+
+- **Live:** https://Alot1z.github.io/open-writer/ — HTTP 200, all 13 assets
+  return 200, bundle verified to contain the IndexedDB layer
+  (`indexedDB.open`, DB name `open-writer`), JS chunks identical to the
+  locally browser-verified build
+- CI green + Pages deploy green on commit `ebcad4e`
+- **Reconciliation note:** remote `main` had been force-replaced by a
+  parallel session's Zustand/localStorage data-store approach whose CI
+  typecheck fails and whose export path was broken (fetch to deleted
+  routes). That work is preserved at
+  `refs/heads/experiment/zustand-localstore`; `main` carries the
+  verified local-api architecture (documented in worklog.md).
+- The first migration commit was missing the local-api files because the
+  pre-existing `.gitignore` rule `local-*` matched them; fixed with
+  explicit un-ignore rules in commit `ebcad4e`.
+
 ## Architecture
 
 Open Writer is now a **fully static, local-first web application**.
