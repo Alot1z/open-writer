@@ -159,6 +159,23 @@ const server = http.createServer(async (req, res) => {
     return json(res, 204, null)
   }
 
+  // ── GitHub App manifest conversion (used by the registrar) ─────────────
+  const manifestMatch = url.pathname.match(/^\/app-manifests\/([^/]+)\/conversions$/)
+  if (manifestMatch && method === "POST") {
+    if (!manifestMatch[1].startsWith("test-manifest-")) {
+      return json(res, 404, { message: "Not Found" })
+    }
+    return json(res, 201, {
+      id: 9001,
+      slug: "open-writer-mock",
+      name: "Open Writer",
+      client_id: "Iv1.mockdeviceflow",
+      client_secret: "secret-only-for-owner",
+      webhook_secret: "whsec-test",
+      pem: "-----BEGIN RSA PRIVATE KEY-----\nmock\n-----END RSA PRIVATE KEY-----\n",
+    })
+  }
+
   // ── User ────────────────────────────────────────────────────────────
   if (url.pathname === "/user" && method === "GET") {
     if (!token.startsWith("ghu_test_") && !token.startsWith("pat_test_")) {

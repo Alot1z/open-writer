@@ -109,3 +109,40 @@ the mock (connect → code → authorize → repo created → project synced →
   private repo; contents + git trees only).
 - Rate limits are respected (per-window counters, "Storage is full for now"
   state with automatic retry).
+
+## Registered GitHub App (one-click Connect, live)
+
+The Open Writer GitHub App is registered on the real GitHub account and
+**Device Flow is enabled**, so "Connect GitHub" works with zero token entry.
+
+| | |
+|---|---|
+| App name | **Open Writer Storage** |
+| App slug | `open-writer-storage` |
+| App ID | `4612293` |
+| Client ID | `Iv23lizL3yc23wougOmX` |
+| Owned by | `@Alot1z` |
+| Homepage | `https://alot1z.github.io/open-writer/` |
+| Webhook | `https://alot1z.github.io/open-writer/hooks` (inactive) |
+| Device Flow | **Enabled** — verified live (`POST github.com/login/device/code` → HTTP 200) |
+| Permissions | `contents: write`, `metadata: read` (repo-scoped, private storage only) |
+
+The Client ID is the only credential a device-flow client needs (no secret —
+the flow is a public-client OAuth flow). It is baked into the deployed bundle
+via `NEXT_PUBLIC_SYNC_CLIENT_ID` (kept in `.env.local`, gitignored).
+
+### Registration flow (for reference / re-running)
+
+`scripts/register-github-app.mjs` builds the manifest URL and starts the local
+callback server. Two gotchas found during the real registration:
+
+1. **App name "Open Writer" is reserved** (collides with the `@open-writer`
+   account) — the registered name is **"Open Writer Storage"**.
+2. **`hook_attributes` in the manifest makes GitHub show a blank form** — omit
+   it; GitHub then prefills the Webhook URL from the homepage (`/hooks`).
+3. **Device Flow is not a manifest field** — after creation, tick *Enable
+   Device Flow* on `github.com/settings/apps/open-writer-storage` and *Save
+   changes* (verified: the device-code endpoint then returns HTTP 200).
+4. The manifest conversion POST may not fire if GitHub redirects to the app
+   settings page instead of the callback — the Client ID is visible right on
+   the settings page, so `NEXT_PUBLIC_SYNC_CLIENT_ID` can be set from there.
