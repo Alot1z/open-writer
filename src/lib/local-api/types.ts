@@ -63,6 +63,10 @@ export interface Character {
   motivation: string
   goals: string
   fears: string
+  /** What the character knows: secrets, plans, information held. */
+  knowledge: string
+  /** Where/when the character appears: scenes, chapters, settings. */
+  appearances: string
   tags: string
   metadata: string
   createdAt: string
@@ -78,6 +82,8 @@ export interface Location {
   atmosphere: string
   history: string
   features: string
+  /** Who owns/controls the location (character or faction name). */
+  ownership: string
   parentLocationId: string
   tags: string
   metadata: string

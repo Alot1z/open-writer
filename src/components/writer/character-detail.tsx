@@ -56,6 +56,8 @@ interface Character {
   motivation: string
   goals: string
   fears: string
+  knowledge: string
+  appearances: string
   tags: string
   relationships: Relationship[]
 }
@@ -324,6 +326,26 @@ export function CharacterDetail({ characterId: characterIdProp }: CharacterDetai
             value={character.fears}
             onChange={(e) => saveField('fears', e.target.value)}
             placeholder="Character fears..."
+            className="text-sm min-h-[60px] resize-y"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs text-stone-500">Knowledge</Label>
+          <Textarea
+            value={character.knowledge || ""}
+            onChange={(e) => saveField('knowledge', e.target.value)}
+            placeholder="What this character knows: secrets, plans, information held..."
+            className="text-sm min-h-[60px] resize-y"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-xs text-stone-500">Appearances</Label>
+          <Textarea
+            value={character.appearances || ""}
+            onChange={(e) => saveField('appearances', e.target.value)}
+            placeholder="Where the character appears: scenes, chapters, settings..."
             className="text-sm min-h-[60px] resize-y"
           />
         </div>

@@ -1,99 +1,102 @@
 # Open Writer — Project Status
 
-**Last Updated:** 2026-08-16
-**Phase:** Local-First Migration Complete (GitHub Pages live)
+**Last Updated:** 2026-08-16 (Phase 2 product core)
 
-## Deployment (2026-08-16) ✅
+## Headline status ✅
 
-- **Live:** https://Alot1z.github.io/open-writer/ — HTTP 200, all 13 assets
-  return 200, bundle verified to contain the IndexedDB layer
-  (`indexedDB.open`, DB name `open-writer`), JS chunks identical to the
-  locally browser-verified build
-- CI green + Pages deploy green on commit `ebcad4e`
-- **Reconciliation note:** remote `main` had been force-replaced by a
-  parallel session's Zustand/localStorage data-store approach whose CI
-  typecheck fails and whose export path was broken (fetch to deleted
-  routes). That work is preserved at
-  `refs/heads/experiment/zustand-localstore`; `main` carries the
-  verified local-api architecture (documented in worklog.md).
-- The first migration commit was missing the local-api files because the
-  pre-existing `.gitignore` rule `local-*` matched them; fixed with
-  explicit un-ignore rules in commit `ebcad4e`.
+- **Live:** https://Alot1z.github.io/open-writer/ — HTTP 200
+- **CI + Pages:** green on every push (`ci.yml`, `deploy-pages.yml`)
+- **Typecheck / lint / build / sync tests:** all green at audit time
+  (`tsc --noEmit` 0 errors, `eslint .` clean, static export builds,
+  **30/30** sync tests pass)
+- **Windows:** NSIS installer + portable EXE built and verified
+- **One-click Connect GitHub:** GitHub App "Open Writer Storage"
+  (App ID `4612293`, Client ID `Iv23lizL3yc23wougOmX`) registered,
+  Device Flow enabled and verified live; client id deployed in the bundle
 
 ## Architecture
 
-Open Writer is now a **fully static, local-first web application**.
+```
+GitHub Pages / Electron (same static bundle)
+        ↓
+    local-first domain/data layer (src/lib/local-api/, 77 routes)
+        ↓
+    IndexedDB (all manuscript data, per browser profile)
+        ↓
+    optional: GitHub sync (src/lib/github-sync/) — private repo backup/sync
+    optional: AI (src/lib/local-api/ai.ts) — user-configured endpoint
+```
 
-- `next build` produces `out/` (static export, `output: "export"`)
-- All data lives in **IndexedDB** in the user's browser
-- All 41 former server API routes are re-implemented client-side in
-  `src/lib/local-api/` with identical REST semantics, served through a
-  fetch shim — the UI components were not changed
-- No server, no Prisma, no SQLite on the server, no next-auth
-- TypeScript strict — `tsc --noEmit` passes with **zero errors**
-  (the previous `typescript.ignoreBuildErrors = true` is gone)
+- Static export (`output: "export"`, basePath `/open-writer`, trailingSlash)
+- No server, no Prisma, no SQLite, no next-auth, no secrets in the bundle
+- Electron desktop loads the identical `out/` bundle over a loopback server
 
-## Verified ✅ (browser-tested on the static build)
+## Verified at Phase 0 audit (code-level evidence)
 
-| Feature | Evidence |
-| ------- | -------- |
-| Project create/list | Browser test: created "The Lighthouse Keeper" |
-| Chapter create | Browser test: "The Storm" with auto-order |
-| Scene create | Browser test: "The Keeper Watches" |
-| Rich text editing + autosave | Typed text via ProseMirror; IndexedDB shows content, wordCount 21 |
-| Auto-version (5-min dedup) | IndexedDB `versions` store: Autosave snapshot created |
-| Persistence across reload | Reload kept project, chapters, scenes, word counts, session |
-| Search | `/api/search?q=Elara` returned the matching scene |
-| Export Markdown/JSON/DOCX/EPUB | All returned valid artifacts; EPUB validated with `unzip` (6 entries, mimetype first) |
-| Backup create/list/get/restore/delete | Checksum created + verified; restore wiped and recreated data |
-| Character CRUD | POST created "Elara Voss", list returned it |
-| Session tracking | Flow widget showed today's words and streak after writing |
-| Static artifact | `out/` has index.html, 404.html, `_next` with basePath-prefixed assets |
-| Console | Zero errors, zero failed requests during testing |
+| Area | Status |
+| ---- | ------ |
+| Projects / chapters / scenes CRUD + editor + autosave | COMPLETE (browser-verified earlier; code verified) |
+| Entity panels: characters (knowledge/appearances), locations (ownership), objects, world, timeline, notes | COMPLETE |
+| Relationships (10 spec types), comments (create/edit/resolve/delete), health, analytics, versions, goals, sprints | COMPLETE |
+| Continuity engine (evidence-based findings: confidence, evidence, affected) | COMPLETE (browser-verified with real findings) |
+| Global search, command palette, docs panel, flow widget | COMPLETE |
+| Export (6 formats incl. self-contained EPUB) / Import (incl. DOCX) | COMPLETE (round-trip verified) |
+| Backups: checksum + verified restore (replaceStore fix) | COMPLETE |
+| Settings: 11 tabs, all wired to runtime effects, live updates | COMPLETE |
+| GitHub sync: device flow, auto repo, dedup, conflicts, encryption, offline | COMPLETE (30/30 tests + browser mock flow; Device Flow live) |
+| Electron: tray, IPC, hide-to-tray, installer, portable | COMPLETE (EXE verified) |
+| GitHub App registration | COMPLETE (live) |
 
-## Implemented in this migration
-
-- `src/lib/local-api/` — storage (IndexedDB), services, router (fetch
-  shim), exports (incl. self-contained EPUB/ZIP writer), imports, AI client
-- `next.config.ts` — `output: "export"`, configurable `basePath`,
-  `trailingSlash`, unoptimized images, no ignored type errors
-- `.github/workflows/ci.yml` — typecheck (real), lint, static build, artifact
-  validation, security audit
-- `.github/workflows/deploy-pages.yml` — builds `out/` with
-  `NEXT_PUBLIC_BASE_PATH=/open-writer` and deploys the real artifact
-- Settings → AI: provider, model, **API Base URL**, **API Key (browser-only)**,
-  temperature, context scope, permission level. AI disabled by default.
-- Dependencies removed: `prisma`, `@prisma/client`, `next-auth`,
-  `z-ai-web-dev-sdk` (Node-only), `epub-gen-memory`, `sharp`
-- Repo sanitized: removed stale `dev.pid`, debug screenshot, pasted prompt
-  file; `.env` no longer tracked
-
-## Partially implemented ⚠️
+## PARTIAL / UNVERIFIED
 
 | Item | Note |
 | ---- | ---- |
-| Local AI (Ollama) | Configurable; needs a running Ollama server to verify |
-| Z.ai AI chat | Configurable endpoint+key; not verified against a live key (no credentials available) |
-| Comments panel | UI + API exist; not browser-tested end-to-end |
-| Analytics accuracy | Sessions/streak now computed from IndexedDB data; chart types fixed |
+| Live AI inference (Z.ai / Ollama) | Code follows verified OpenAI-compatible contract; needs the user's own key/endpoint |
+| Real GitHub cross-device sync round-trip | Engine tested vs mock; needs one-time user authorization |
 
-## Not started ❌
+## Phase 2 (product core) — verified in browser
 
-- PWA / offline service worker (the app is inherently offline-capable —
-  static files + IndexedDB — but no installable PWA manifest yet)
-- Sync / collaboration / cloud
-- Windows desktop build (Tauri)
-- Sandboxed agent execution
-- Continuity engine (deterministic checks beyond project health)
+| Item | Evidence |
+| ---- | ---- |
+| Continuity panel (new) | Real findings rendered: severity, confidence %, evidence, affected IDs; re-run works |
+| Character knowledge/appearances | UI fields persist end-to-end (input → debounced PUT → IndexedDB → reload) |
+| Location ownership + parent select | Persists via API; select-based parent picker |
+| Comments edit + delete | Edit dialog + delete confirm both persist to storage |
+| Relationship types | All 10 spec types in the panel's type select |
+| Router field whitelist bug (Phase 2) | `COLLECTION_FIELDS` dropped `knowledge`/`appearances`/`ownership` on PUT — fixed and re-verified |
 
-## Remaining gaps
+## MISSING / open gaps (non-blocking)
 
-1. **AI live verification** — needs a user-provided key (by design, keys are
-   never committed)
-2. **Large-project performance** — not benchmarked (100 chapters / 1000 scenes)
-3. **Mobile responsiveness** — desktop verified; tablet/mobile not yet audited
-4. **Accessibility audit** — not yet performed with screen readers
-5. **Windows desktop** — out of scope for this migration (see PROJECT-PLAN)
-6. **Import preview** — importer works, but no pre-import preview dialog
-7. **PWA** — manifest/service worker not implemented
-8. **Comments** — API verified via router unit paths; UI flow untested
+- PWA manifest + service worker (app is already offline-capable)
+- Mobile/tablet responsive audit; accessibility (screen-reader) audit
+- Import preview dialog
+- Large-project performance benchmark
+
+## Cleanup items (from audit)
+
+- Dead code: `src/lib/ai/zai-provider.ts`, `no-provider.ts` (nothing imports them; stale "server-side" comment)
+- Legacy: `.zscripts/` and `tests/` scripts referencing removed subsystems
+  (database-runtime / python-runtime / mini-services)
+- Empty dirs: `examples/`, `mini-services/`
+- Stale doc: `docs/status/current-audit.md` (2025, pre-migration; superseded by `docs/research/phase-0-audit.md`)
+
+## Recent commits
+
+```
+314e5bb build: commit NEXT_PUBLIC_SYNC_CLIENT_ID so CI ships one-click Connect
+2a61297 feat: register the Open Writer GitHub App — one-click Connect GitHub
+b80b930 docs: record tray indicator work in worklog
+49d152c feat: native tray indicator + Sync now / Open storage menu (Electron)
+0731125 feat: private GitHub storage — zero-config cloud sync for projects
+a5ad252 feat: add Electron Windows desktop app; fix replace-store wipe bug
+424181b fix: wire six dead/misleading code paths found in line-by-line audit
+5a81f05 feat: wire all settings tabs to real runtime behavior
+ebcad4e fix: commit the local-api layer that .gitignore was silently excluding
+9bf855e feat: migrate Open Writer to local-first static app for GitHub Pages
+```
+
+## History note
+
+`refs/heads/experiment/zustand-localstore` preserves a parallel session's
+Zustand/localStorage data-store approach (its typecheck failed and export
+path was broken); `main` carries the verified local-api architecture.

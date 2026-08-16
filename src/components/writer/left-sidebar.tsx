@@ -14,6 +14,7 @@ import { AnalyticsPanel } from './analytics-panel'
 import { AgentPanel } from './agent-panel'
 import { RelationshipsPanel } from './relationships-panel'
 import { HealthPanel } from './health-panel'
+import { ContinuityPanel } from './continuity-panel'
 import { VersionsPanel } from './versions-panel'
 import { ExportSidePanel } from './export-side-panel'
 import { DocsPanel } from './docs-panel'
@@ -37,6 +38,7 @@ import {
   BarChart3,
   Bot,
   Search,
+  ShieldAlert,
   Settings,
   MessageSquare,
   GitBranch,
@@ -64,7 +66,8 @@ const panelItems: { id: PanelType; icon: React.ElementType; label: string }[] = 
   { id: 'agent', icon: Bot, label: 'AI Agent' },
   { id: 'relationships', icon: Heart, label: 'Relationships' },
   { id: 'health', icon: Activity, label: 'Health' },
-  // separator after index 12
+  { id: 'continuity', icon: ShieldAlert, label: 'Continuity' },
+  // separator after index 13
   // Tools
   { id: 'export', icon: Download, label: 'Export' },
   { id: 'docs', icon: FileText, label: 'Docs' },
@@ -73,7 +76,7 @@ const panelItems: { id: PanelType; icon: React.ElementType; label: string }[] = 
 ]
 
 // Indices where separators should appear AFTER the item
-const SEPARATOR_AFTER = new Set([7, 12])
+const SEPARATOR_AFTER = new Set([7, 13])
 
 interface LeftSidebarProps {
   className?: string
@@ -110,6 +113,8 @@ export function LeftSidebar({ className }: LeftSidebarProps) {
         return <RelationshipsPanel />
       case 'health':
         return <HealthPanel />
+      case 'continuity':
+        return <ContinuityPanel />
       case 'export':
         return <ExportSidePanel />
       case 'docs':

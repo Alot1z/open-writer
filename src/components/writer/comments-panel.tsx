@@ -23,6 +23,17 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import {
   MessageSquare,
   Plus,
   Check,
@@ -32,6 +43,8 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
 
 // ─── Types ───────────────────────────────────────
@@ -113,6 +126,9 @@ export function CommentsPanel() {
   const [newContent, setNewContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [editingComment, setEditingComment] = useState<Comment | null>(null)
+  const [editContent, setEditContent] = useState('')
   const [resolvedOpen, setResolvedOpen] = useState(true)
 
   // ─── Fetch ────────────────────────────────────
@@ -201,6 +217,62 @@ export function CommentsPanel() {
       toast({ title: 'Error', description: 'Failed to update comment', variant: 'destructive' })
     } finally {
       setTogglingId(null)
+    }
+  }
+
+  // ─── Edit ────────────────────────────────────
+
+  const handleEdit = (comment: Comment) => {
+    setEditingComment(comment)
+    setEditContent(comment.content)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingComment || !editContent.trim()) return
+    setSubmitting(true)
+    try {
+      const res = await fetch(`/api/comments/${editingComment.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: editContent.trim() }),
+      })
+      if (res.ok) {
+        setComments((prev) =>
+          prev.map((c) =>
+            c.id === editingComment.id
+              ? { ...c, content: editContent.trim(), updatedAt: new Date().toISOString() }
+              : c
+          )
+        )
+        setEditingComment(null)
+        setEditContent('')
+        toast({ title: 'Comment updated', description: 'Your comment has been saved' })
+      } else {
+        toast({ title: 'Error', description: 'Failed to update comment', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Failed to update comment', variant: 'destructive' })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // ─── Delete ────────────────────────────────────
+
+  const handleDelete = async (comment: Comment) => {
+    setDeletingId(comment.id)
+    try {
+      const res = await fetch(`/api/comments/${comment.id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setComments((prev) => prev.filter((c) => c.id !== comment.id))
+        toast({ title: 'Comment deleted', description: 'The comment has been removed' })
+      } else {
+        toast({ title: 'Error', description: 'Failed to delete comment', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Failed to delete comment', variant: 'destructive' })
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -354,6 +426,49 @@ export function CommentsPanel() {
                         )}
                         Resolve
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(comment)}
+                        className="h-6 px-2 text-[11px] gap-1 text-stone-500 hover:text-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800"
+                      >
+                        <Pencil className="h-3 w-3" />
+                        Edit
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={deletingId === comment.id}
+                            className="h-6 px-2 text-[11px] gap-1 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                          >
+                            {deletingId === comment.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3 w-3" />
+                            )}
+                            Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete comment?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This permanently removes the comment. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(comment)}
+                              className="bg-red-600 hover:bg-red-700 text-white"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                 </div>
@@ -430,6 +545,50 @@ export function CommentsPanel() {
                                   )}
                                   Reopen
                                 </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEdit(comment)}
+                                  className="h-6 px-2 text-[11px] gap-1 text-stone-500 hover:text-stone-700 hover:bg-stone-100 dark:hover:bg-stone-800"
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                  Edit
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      disabled={deletingId === comment.id}
+                                      className="h-6 px-2 text-[11px] gap-1 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                    >
+                                      {deletingId === comment.id ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <Trash2 className="h-3 w-3" />
+                                      )}
+                                      Delete
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete comment?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This permanently removes the comment. This action cannot
+                                        be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDelete(comment)}
+                                        className="bg-red-600 hover:bg-red-700 text-white"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               </div>
                             </div>
                           </div>
@@ -443,6 +602,62 @@ export function CommentsPanel() {
           </div>
         )}
       </ScrollArea>
+
+      {/* ── Edit Comment Dialog ── */}
+      <Dialog
+        open={editingComment !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingComment(null)
+            setEditContent('')
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-4 w-4 text-amber-500" />
+              Edit Comment
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Textarea
+              placeholder="Write your comment..."
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="min-h-[100px] resize-none text-sm"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setEditingComment(null)
+                setEditContent('')
+              }}
+              disabled={submitting}
+              className="text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSaveEdit}
+              disabled={!editContent.trim() || submitting}
+              className="gap-1.5 text-xs bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              {submitting ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Check className="h-3.5 w-3.5" />
+              )}
+              {submitting ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Add Comment Dialog ── */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>

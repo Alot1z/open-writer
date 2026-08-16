@@ -39,6 +39,7 @@ interface Location {
   atmosphere: string
   history: string
   features: string
+  ownership: string
   parentLocationId: string
   tags: string
 }
@@ -54,10 +55,20 @@ export function LocationDetail({ locationId: locationIdProp }: LocationDetailPro
   const effectiveId = locationIdProp ?? selectedLocationId
   const { toast } = useToast()
   const [location, setLocation] = useState<Location | null>(null)
+  const [allLocations, setAllLocations] = useState<Location[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Load every location in the project so the parent selector can show names
+  useEffect(() => {
+    const projectId = useWriterStore.getState().currentProjectId
+    if (!projectId) return
+    fetch(`/api/locations?projectId=${projectId}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setAllLocations)
+      .catch(() => {})
+  }, [effectiveId])
   const fetchLocation = useCallback(async () => {
     if (!effectiveId) return
     setLoading(true)
@@ -244,17 +255,40 @@ export function LocationDetail({ locationId: locationIdProp }: LocationDetailPro
           />
         </div>
 
+        {/* Ownership */}
+        <div className="space-y-1.5">
+          <Label className="text-xs text-stone-500">Ownership</Label>
+          <Input
+            value={location.ownership || ""}
+            onChange={(e) => saveField('ownership', e.target.value)}
+            placeholder="Who owns or controls this location"
+            className="h-8 text-sm"
+          />
+        </div>
+
         <Separator />
 
         {/* Parent Location */}
         <div className="space-y-1.5">
           <Label className="text-xs text-stone-500">Parent Location</Label>
-          <Input
+          <Select
             value={location.parentLocationId}
-            onChange={(e) => saveField('parentLocationId', e.target.value)}
-            placeholder="Parent location ID"
-            className="h-8 text-sm"
-          />
+            onValueChange={(v) => saveField('parentLocationId', v)}
+          >
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue placeholder="Select a parent location" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">None</SelectItem>
+              {allLocations
+                .filter((l) => l.id !== location.id)
+                .map((l) => (
+                  <SelectItem key={l.id} value={l.id}>
+                    {l.name}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <Separator />
