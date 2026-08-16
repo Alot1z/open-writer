@@ -296,3 +296,20 @@ Typecheck/lint/export green; CI + Pages deploy green on 424181b; live bundle ver
   user code instead of device code, encryption salt mismatch between build and
   download, missing remote-restore flow (project handoff), storageBytes
   computation, stale-mock EADDRINUSE during verification
+
+## 2026-08-16 (tray) — Native tray indicator + Sync now / Open storage (Electron)
+
+- electron/preload.js: sandbox-safe contextBridge exposing window.openWriter
+  (onSyncCommand, sendSyncStatus, openExternal)
+- electron/main.js: Tray with generated 16x16 amber PNG; live status line in
+  tooltip + menu ("Open Writer — Synced" etc.) fed over IPC by the renderer
+  bridge; menu: Show Open Writer / Sync now / Open storage on GitHub
+  (enabled only when connected) / Quit; close-to-tray (Quit only via menu);
+  second-instance re-show
+- src/components/electron-bridge.tsx: wires tray commands to the sync engine
+  (syncNow + checkRemote; opens the storage repo externally); no-op in browser
+- Verified on packaged EXE: window loads; closing window keeps process alive
+  in tray; second launch re-shows window on same PID; no crashes
+- Note: tray icon visibility itself can't be screenshot from this session
+  (notification-area API access is limited); functional tray behaviors
+  verified as above
