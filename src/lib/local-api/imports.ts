@@ -404,3 +404,102 @@ export async function importText(projectId: string, content: string, title?: str
 
   return { chapters: 1, scenes: 1, wordCount }
 }
+
+// ─────────────────────────────────────────────────────────────
+// DOCX (Microsoft Word) import
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Minimal ZIP reader for DOCX files. Supports stored (0) and
+ * deflate (8) entries; deflate uses the browser's DecompressionStream.
+ */
+export async function extractZipEntryText(
+  bytes: Uint8Array,
+  entryName: string
+): Promise<string | null> {
+  const decoder = new TextDecoder("utf-8")
+  let offset = 0
+  while (offset + 30 <= bytes.length) {
+    // Local file header signature
+    if (bytes[offset] !== 0x50 || bytes[offset + 1] !== 0x4b || bytes[offset + 2] !== 0x03 || bytes[offset + 3] !== 0x04) {
+      break
+    }
+    const method = bytes[offset + 8] | (bytes[offset + 9] << 8)
+    const nameLen = bytes[offset + 26] | (bytes[offset + 27] << 8)
+    const extraLen = bytes[offset + 28] | (bytes[offset + 29] << 8)
+    const compSize = bytes[offset + 18] | (bytes[offset + 19] << 8) | (bytes[offset + 20] << 16) | (bytes[offset + 21] << 24)
+    const nameStart = offset + 30
+    const dataStart = nameStart + nameLen + extraLen
+    const name = decoder.decode(bytes.subarray(nameStart, nameStart + nameLen))
+    const data = bytes.subarray(dataStart, dataStart + compSize)
+    if (name === entryName) {
+      if (method === 0) {
+        return decoder.decode(data)
+      }
+      if (method === 8 && typeof DecompressionStream !== "undefined") {
+        const ds = new DecompressionStream("deflate-raw")
+        const stream = new Blob([new Uint8Array(data)]).stream().pipeThrough(ds)
+        const buf = await new Response(stream).arrayBuffer()
+        return decoder.decode(new Uint8Array(buf))
+      }
+      return null // unsupported compression method
+    }
+    offset = dataStart + compSize
+  }
+  return null
+}
+
+/** Parse word/document.xml into simple markdown (headings + paragraphs). */
+function docxXmlToMarkdown(xml: string): string {
+  const blocks: string[] = []
+  // Split into paragraphs
+  const paras = xml.match(/<w:p[ >][\s\S]*?<\/w:p>|<w:p[^>]*\/>/g) || []
+  for (const para of paras) {
+    const styleMatch = para.match(/<w:pStyle w:val="([^"]+)"/)
+    const style = styleMatch ? styleMatch[1] : ""
+    const text = (para.match(/<w:t(?: [^>]*)?>([\s\S]*?)<\/w:t>/g) || [])
+      .map((t) => t.replace(/<w:t(?: [^>]*)?>/g, "").replace(/<\/w:t>/g, ""))
+      .join("")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+    if (!text.trim()) continue
+    if (/^Heading1$/i.test(style) || /^Title$/i.test(style)) blocks.push(`# ${text.trim()}`)
+    else if (/^Heading2$/i.test(style)) blocks.push(`## ${text.trim()}`)
+    else if (/^Heading3$/i.test(style)) blocks.push(`### ${text.trim()}`)
+    else blocks.push(text)
+  }
+  return blocks.join("\n\n")
+}
+
+export async function importDocx(
+  projectId: string,
+  bytes: Uint8Array,
+  title?: string
+): Promise<{ chapters: number; scenes: number; wordCount: number }> {
+  if (!projectId || !bytes || bytes.length === 0) {
+    throw new s.ApiError("projectId and file content are required", 400)
+  }
+  const project = await db.getById("projects", projectId)
+  if (!project) throw new s.ApiError("Project not found", 404)
+
+  const xml = await extractZipEntryText(bytes, "word/document.xml")
+  if (!xml) {
+    throw new s.ApiError("Not a valid DOCX file: word/document.xml not found", 400)
+  }
+
+  const markdown = docxXmlToMarkdown(xml)
+  if (!markdown.trim()) {
+    throw new s.ApiError("No readable text found in the DOCX file", 400)
+  }
+
+  // Reuse the markdown importer so headings become chapters/scenes.
+  // If the document has no heading styles, wrap everything in one chapter.
+  const withHeadings = /^#s+/m.test(markdown) ? markdown : `# ${title || "Imported Document"}
+
+${markdown}`
+  const imported = await importMarkdown(projectId, withHeadings)
+  return { ...imported, wordCount: withHeadings.split(/s+/).filter(Boolean).length }
+}

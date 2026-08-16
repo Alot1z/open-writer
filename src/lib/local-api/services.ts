@@ -422,9 +422,34 @@ export const listNotes = (projectId: string) => listByProject<Note>("notes", pro
 
 export async function listRelationships(projectId: string): Promise<Relationship[]> {
   const all = await db.getAll<Relationship>("relationships")
+  const [characters, locations, storyObjects, worldElements] = await Promise.all([
+    db.getAll<Character>("characters"),
+    db.getAll<Location>("locations"),
+    db.getAll<StoryObject>("storyObjects"),
+    db.getAll<WorldElement>("worldElements"),
+  ])
+  // Resolve display names for any entity id referenced by a relationship.
+  const nameById = new Map<string, string>()
+  for (const c of characters) nameById.set(c.id, c.name)
+  for (const l of locations) nameById.set(l.id, l.name)
+  for (const o of storyObjects) nameById.set(o.id, o.name)
+  for (const w of worldElements) nameById.set(w.id, w.name)
+  const display = (id: string) => nameById.get(id) ?? id
   return all
     .filter((r) => r.projectId === projectId)
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+    .map((r) => ({
+      ...r,
+      sourceName: display(r.sourceId),
+      targetName: display(r.targetId),
+    }))
+}
+
+export async function deleteRelationship(id: string): Promise<boolean> {
+  const existing = await db.getById<Relationship>("relationships", id)
+  if (!existing) return false
+  await db.deleteRecord("relationships", id)
+  return true
 }
 
 export async function createEntity<K extends string>(store: db.StoreName, body: Record<string, unknown>, required: K[], defaults: Record<string, unknown>): Promise<Record<string, unknown>> {

@@ -39,18 +39,28 @@ export function HealthPanel() {
         notesRes,
         timelineRes,
         chaptersRes,
+        objectsRes,
+        worldRes,
+        relsRes,
       ] = await Promise.all([
         fetch(`/api/characters?projectId=${currentProjectId}`),
         fetch(`/api/locations?projectId=${currentProjectId}`),
         fetch(`/api/notes?projectId=${currentProjectId}`),
         fetch(`/api/timeline?projectId=${currentProjectId}`),
         fetch(`/api/chapters?projectId=${currentProjectId}`),
+        fetch(`/api/objects?projectId=${currentProjectId}`),
+        fetch(`/api/world?projectId=${currentProjectId}`),
+        fetch(`/api/relationships?projectId=${currentProjectId}`),
       ])
 
       const characters = charsRes.ok ? await charsRes.json() : []
+      const locations = locsRes.ok ? await locsRes.json() : []
       const notes = notesRes.ok ? await notesRes.json() : []
       const timeline = timelineRes.ok ? await timelineRes.json() : []
       const chapters = chaptersRes.ok ? await chaptersRes.json() : []
+      const objects = objectsRes.ok ? await objectsRes.json() : []
+      const worldElements = worldRes.ok ? await worldRes.json() : []
+      const relationships = relsRes.ok ? await relsRes.json() : []
 
       // Calculate total word count
       let totalWords = 0
@@ -88,8 +98,20 @@ export function HealthPanel() {
         }
       }
 
-      // Dangling references: characters referenced in scenes that don't exist
-      const danglingRefs = 0 // Would need scene data to compute
+      // Dangling references: relationships that point at entities which no
+      // longer exist. User-typed names are kept as ids, so only references
+      // to known-but-missing entity ids are flagged.
+      const knownEntityIds = new Set([
+        ...characters.map((c) => c.id),
+        ...locations.map((l) => l.id),
+        ...objects.map((o) => o.id),
+        ...worldElements.map((w) => w.id),
+      ])
+      const danglingRefs = relationships.filter(
+        (r: { sourceId: string; targetId: string }) =>
+          (r.sourceId && !knownEntityIds.has(r.sourceId)) ||
+          (r.targetId && !knownEntityIds.has(r.targetId))
+      ).length
 
       const healthChecks: HealthCheck[] = [
         {
