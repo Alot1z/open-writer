@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { LocalApiBootstrap } from "@/components/local-api-bootstrap";
 import { ThemeSync } from "@/components/theme-sync";
 import { SyncInit } from "@/components/sync-init";
+import { ElectronBridge } from "@/components/electron-bridge";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,6 +43,7 @@ export default function RootLayout({
           <LocalApiBootstrap />
           <ThemeSync />
           <SyncInit />
+          <ElectronBridge />
           {children}
           <Toaster />
         </ThemeProvider>

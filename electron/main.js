@@ -12,13 +12,25 @@
  * IndexedDB (per-user AppData), exactly like the web version.
  */
 
-const { app, BrowserWindow, shell, Menu } = require("electron")
+const {
+  app,
+  BrowserWindow,
+  shell,
+  Menu,
+  Tray,
+  nativeImage,
+  ipcMain,
+} = require("electron")
 const http = require("node:http")
 const fs = require("node:fs")
 const path = require("node:path")
 
 const BASE_PATH = "/open-writer"
 const PORT = 0 // ephemeral — the OS assigns a free port
+
+// 16×16 tray icon (amber square with a darker quill), generated once
+const TRAY_ICON_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAATklEQVR4nGNgGFTg6zzu/8RgnJorTPnBmCxDkA0gxhCczifWELz+J8YQggFIyBCiYgCfIURHIS5DSEoD2AwhyQBsaYRkA4hOjWRrHjAAAI4IV9pu1CM3AAAAAElFTkSuQmCC"
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -98,6 +110,7 @@ function startServer() {
 }
 
 let mainWindow = null
+let isQuitting = false
 
 function createWindow(url) {
   mainWindow = new BrowserWindow({
@@ -112,6 +125,7 @@ function createWindow(url) {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      preload: path.join(__dirname, "preload.js"),
     },
   })
 
@@ -134,25 +148,113 @@ function createWindow(url) {
 
   Menu.setApplicationMenu(null)
   mainWindow.loadURL(`http://127.0.0.1:${url.port}${BASE_PATH}/`)
+
+  // Closing the window keeps the app running in the tray (standard tray UX).
+  // Quit only happens from the tray menu (or app.quit()).
+  mainWindow.on("close", (e) => {
+    if (!isQuitting) {
+      e.preventDefault()
+      mainWindow.hide()
+    }
+  })
   mainWindow.on("closed", () => {
     mainWindow = null
   })
 }
+
+function showWindow() {
+  if (!mainWindow) return
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.show()
+  mainWindow.focus()
+}
+
+// ── Tray ────────────────────────────────────────────────────────────────
+
+let tray = null
+let trayStatus = { label: "Local only", connected: false, repoFullName: null }
+
+function sendSyncCommand(command) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("ow:sync-command", command)
+  }
+}
+
+function updateTray() {
+  if (!tray) return
+  tray.setToolTip(`Open Writer — ${trayStatus.label}`)
+  const template = [
+    { label: `Open Writer — ${trayStatus.label}`, enabled: false },
+    { type: "separator" },
+    {
+      label: "Show Open Writer",
+      click: showWindow,
+    },
+    {
+      label: "Sync now",
+      click: () => sendSyncCommand("sync-now"),
+    },
+    {
+      label: "Open storage on GitHub",
+      enabled: Boolean(trayStatus.connected && trayStatus.repoFullName),
+      click: () => sendSyncCommand("open-storage"),
+    },
+    { type: "separator" },
+    {
+      label: "Quit Open Writer",
+      click: () => {
+        isQuitting = true
+        app.quit()
+      },
+    },
+  ]
+  tray.setContextMenu(Menu.buildFromTemplate(template))
+}
+
+function createTray() {
+  const icon = nativeImage.createFromDataURL(
+    `data:image/png;base64,${TRAY_ICON_BASE64}`
+  )
+  tray = new Tray(icon)
+  tray.on("click", showWindow)
+  updateTray()
+}
+
+// ── IPC (renderer ↔ tray) ───────────────────────────────────────────────
+
+ipcMain.on("ow:open-external", (_event, url) => {
+  if (typeof url === "string" && /^https?:\/\//.test(url)) {
+    shell.openExternal(url)
+  }
+})
+
+ipcMain.on("ow:sync-status", (_event, status) => {
+  if (
+    status &&
+    typeof status === "object" &&
+    typeof status.label === "string"
+  ) {
+    trayStatus = {
+      label: status.label,
+      connected: Boolean(status.connected),
+      repoFullName: typeof status.repoFullName === "string" ? status.repoFullName : null,
+    }
+    updateTray()
+  }
+})
 
 const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) {
   app.quit()
 } else {
   app.on("second-instance", () => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      mainWindow.focus()
-    }
+    showWindow()
   })
 
   app.whenReady().then(async () => {
     const url = await startServer()
     if (!url) return
+    createTray()
     createWindow(url)
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow(url)
@@ -160,6 +262,6 @@ if (!gotLock) {
   })
 
   app.on("window-all-closed", () => {
-    app.quit()
+    if (isQuitting) app.quit()
   })
 }
