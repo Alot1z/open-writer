@@ -188,3 +188,19 @@ Stage Summary:
 - Note: the pre-existing .gitignore `local-*` rule silently excluded
   src/lib/local-api/* from the first migration commit; fixed via explicit
   un-ignore (commit ebcad4e).
+
+## 2026-08-16 (later) — Settings tabs wired to real runtime behavior (commit 5a81f05)
+
+User feedback: most settings tabs saved values but applied nothing. Fixed across all 6 tabs:
+
+- NEW `src/lib/settings.ts` — typed loaders + subscribe-on-change (ow-settings-changed event), single source of truth
+- NEW `src/components/theme-sync.tsx` — applies theme + accent color live, MutationObserver for dark-mode flips
+- EDITOR tab → rich-text-editor (font family/size/line-height/max-width/paragraph spacing, live via subscription)
+- WRITING tab → scene create status (chapter-tree), autosave interval (editor-area), version retention pruning (services.pruneOldVersions, milestones always kept)
+- GOALS tab → daily goal + project deadline defaults (goals-panel)
+- APPEARANCE tab → theme + accent live, focus-mode-on-startup (page.tsx on mount)
+- AI tab → provider/model/temperature/baseUrl/apiKey feed ai.ts + use-ai-assistant initial state (no more hardcoded zai)
+- PRIVACY tab → local-only mode blocks remote AI providers (ai.ts throws), show-data-transmission gates agent context info
+- AGENT panel → context scope setting (current-scene / current-chapter / full-project) builds real prompt context from IndexedDB via the shim
+
+Verified live on static build: accent rose applied on save + persisted across reload (CSS var #fb7185); focus mode starts ON after reload per setting; typecheck/lint/build green. CI + Pages deploy green on 5a81f05; live bundle contains settings module (chunk a1f762aa…: focusModeDefaults, defaultSceneStatus, autosaveInterval, versionHistoryRetention; d3615dea…/9bfe53d4…: theme-sync accent vars).
