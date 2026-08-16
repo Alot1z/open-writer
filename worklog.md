@@ -172,3 +172,19 @@ Stage Summary:
 - Export (6 formats), Import (3 formats), Backup/Restore working
 - Writing sprints, session tracking, goals, typewriter mode all implemented
 - Application fully functional with autosave, versioning, and AI integration
+
+## 2026-08-16 — Local-first migration deployed to GitHub Pages (final)
+
+- Migrated all 41 server API routes to browser-local layer (src/lib/local-api/)
+  served through a fetch shim; IndexedDB persistence; static export.
+- tsc --noEmit clean (removed ignoreBuildErrors); lint clean.
+- CI + Pages workflows build/validate the real out/ artifact.
+- Live: https://Alot1z.github.io/open-writer/ (HTTP 200, all assets 200,
+  bundle verified to contain the IndexedDB layer).
+- Reconciliation: remote main had been force-replaced by another session's
+  Zustand/localStorage approach (CI-red, exports broken). That work is
+  preserved at refs/heads/experiment/zustand-localstore; main carries the
+  verified architecture. Documented in docs/STATUS.md.
+- Note: the pre-existing .gitignore `local-*` rule silently excluded
+  src/lib/local-api/* from the first migration commit; fixed via explicit
+  un-ignore (commit ebcad4e).
