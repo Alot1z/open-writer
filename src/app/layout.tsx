@@ -5,6 +5,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { LocalApiBootstrap } from "@/components/local-api-bootstrap";
 import { ThemeSync } from "@/components/theme-sync";
+import { SyncInit } from "@/components/sync-init";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -40,6 +41,7 @@ export default function RootLayout({
         >
           <LocalApiBootstrap />
           <ThemeSync />
+          <SyncInit />
           {children}
           <Toaster />
         </ThemeProvider>

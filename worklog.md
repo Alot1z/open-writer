@@ -254,3 +254,45 @@ Typecheck/lint/export green; CI + Pages deploy green on 424181b; live bundle ver
 **Live deployment (commit a5ad252)**
 - CI ✅ + Pages deploy ✅ (run 31936550446, 50s); https://Alot1z.github.io/open-writer/ 200
 - Live bundle verified to contain `replaceStore` (chunk d0a35d87c8a9d360)
+
+## 2026-08-16 (final) — Private GitHub storage / cloud sync (zero-config)
+
+**Feature (new)**
+- `src/lib/github-sync/` — full sync engine, local-first + private cloud:
+  - auth.ts: OAuth device flow (works on GitHub Pages, no secret) + one-time
+    token fallback; tokens in memory + sessionStorage only, 8h expiry + refresh
+  - api.ts: minimal GitHub REST client (user, repos, contents, git trees)
+  - crypto.ts: SHA-256, gzip via CompressionStream, chunking, AES-GCM +
+    PBKDF2 optional encryption (salt derived from checksum)
+  - snapshot.ts: content-addressed chunks, manifests, integrity checks
+  - repo.ts: auto-discovers or creates the private `open-writer-storage`
+    repo (marker-checked, never touches unrelated repos), bootstraps metadata
+  - engine.ts: state machine (Local only / Syncing / Synced / Offline /
+    Paused / Attention / Conflict / Full), debounced background sync, retry +
+    exponential backoff, conflict detection + keep-local/keep-remote/save-both,
+    remote project discovery + one-click restore, auto-pull when clean
+  - data-provider.ts: IndexedDB provider (browser) + in-memory provider (tests)
+  - chunk-index.ts: cross-device dedup via remote tree merge (separate IDB DB)
+  - status.ts: plain-language status states (what happened / means / doing / do)
+- UI: Settings → Storage tab (connect, code display, connected status card,
+  Sync now, Open GitHub, Advanced diagnostics, Disconnect, conflict dialog),
+  project-picker "From the cloud" restore section + per-project sync badges,
+  top-bar sync pill, first-run "Protect your projects" banner, SyncInit boot
+- Config build-time overrides: NEXT_PUBLIC_SYNC_CLIENT_ID / _API_BASE /
+  _WEB_BASE / _REPO (documented in docs/sync-github.md)
+
+**Verification (real, not just compiled)**
+- Headless end-to-end suite scripts/mock-github.mjs + scripts/test-sync.ts:
+  30/30 passed — device flow, private repo auto-creation, initial verified
+  backup, no-op sync (0 uploads), delta sync (only changed chunks), second
+  device discovery + restore, cross-device dedup, auto-pull, conflict + all
+  three resolutions, encryption round-trip + wrong-passphrase integrity
+  failure, offline, disconnect keeps remote intact
+- Browser (static build against the mock via NEXT_PUBLIC_SYNC_* envs):
+  Connect GitHub → device code shown → authorized → private repo created →
+  project synced → connected UI "Synced / Connected as @testwriter /
+  Private storage Enabled / Projects 1 / Storage 4.9 KB" — all verified live
+- The test suite caught and fixed real bugs: finishDeviceFlow polled with the
+  user code instead of device code, encryption salt mismatch between build and
+  download, missing remote-restore flow (project handoff), storageBytes
+  computation, stale-mock EADDRINUSE during verification

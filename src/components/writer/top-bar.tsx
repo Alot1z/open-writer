@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { useWriterStore } from '@/store/writer-store'
+import { useSync } from '@/hooks/use-sync'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -22,6 +23,12 @@ import {
   PenLine,
   ChevronRight,
   Download,
+  CloudUpload,
+  Cloud,
+  CloudOff,
+  CheckCircle2,
+  AlertTriangle,
+  Loader2,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { cn } from '@/lib/utils'
@@ -47,6 +54,7 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
   } = useWriterStore()
 
   const { theme, setTheme } = useTheme()
+  const { snapshot: syncSnapshot } = useSync()
   const [isEditingName, setIsEditingName] = useState(false)
   const [nameValue, setNameValue] = useState(currentProjectName)
 
@@ -230,6 +238,23 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
         <TooltipContent side="bottom">Toggle Theme</TooltipContent>
       </Tooltip>
 
+      {/* Sync pill */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn('h-7 w-7', syncPillTone(syncSnapshot.status))}
+            onClick={() => setSettingsOpen(true, 'storage')}
+          >
+            {syncSnapshot.status === 'syncing' ? (<Loader2 className="h-3.5 w-3.5 animate-spin" />) : syncSnapshot.status === 'synced' ? (<CheckCircle2 className="h-3.5 w-3.5" />) : syncSnapshot.status === 'conflict' ? (<AlertTriangle className="h-3.5 w-3.5" />) : syncSnapshot.status === 'offline' || syncSnapshot.status === 'full' ? (<CloudOff className="h-3.5 w-3.5" />) : syncSnapshot.connected ? (<Cloud className="h-3.5 w-3.5" />) : (<CloudUpload className="h-3.5 w-3.5" />)}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {syncPillLabel(syncSnapshot.status)}
+        </TooltipContent>
+      </Tooltip>
+
       {/* Settings */}
       <Tooltip>
         <TooltipTrigger asChild>
@@ -241,4 +266,28 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
       </Tooltip>
     </header>
   )
+}
+
+function syncPillTone(status: string): string {
+  switch (status) {
+    case 'synced': return 'text-emerald-600 dark:text-emerald-400'
+    case 'syncing': return 'text-amber-600 dark:text-amber-400'
+    case 'conflict': return 'text-red-600 dark:text-red-400'
+    case 'offline':
+    case 'full': return 'text-muted-foreground'
+    case 'attention': return 'text-amber-600 dark:text-amber-400'
+    default: return 'text-muted-foreground'
+  }
+}
+
+function syncPillLabel(status: string): string {
+  switch (status) {
+    case 'synced': return 'Cloud storage: synced'
+    case 'syncing': return 'Cloud storage: syncing…'
+    case 'conflict': return 'Cloud storage: conflict — review'
+    case 'offline': return 'Cloud storage: offline — saved on this device'
+    case 'full': return 'Cloud storage: full for now'
+    case 'attention': return 'Cloud storage: needs attention'
+    default: return 'Cloud storage: not connected'
+  }
 }

@@ -1,5 +1,7 @@
 "use strict"
 
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 /**
  * Open Writer — Windows desktop shell.
  *
