@@ -217,3 +217,40 @@ Full manual re-read of all 37 writer components + hooks + local-api found real g
 6. **Health panel** — danglingRefs hardcoded 0 → computed from relationships pointing at missing entities.
 
 Typecheck/lint/export green; CI + Pages deploy green on 424181b; live bundle verified to contain deleteRelationship, sourceName resolution, and the DOCX importer.
+
+## 2026-08-16 (final) — Windows desktop EXE + final full verification
+
+**Windows desktop app (commit a5ad252)**
+- Added `electron/main.js`: bundled static server over the exported `out/` app
+  (mirrors GitHub Pages exactly incl. `/open-writer/` basePath), ephemeral port,
+  `webSecurity` + navigation hardening, works fully offline
+- electron-builder config: NSIS + portable x64 targets; fixed artifact naming
+  collision (installer was being overwritten by the portable build)
+- Verified all three artifacts launch and serve the real app:
+  - `dist/win-unpacked/Open Writer.exe` — window "Open Writer - Local-First
+    Writing Studio", index 200, assets 200
+  - `dist/Open-Writer-Portable-1.0.0-x64.exe` — same, window verified (PID 31292)
+  - `dist/Open-Writer-Setup-1.0.0-x64.exe` — silent `/S` install succeeded
+    (exit 0) → installed to %LOCALAPPDATA%\Programs\Open Writer with Start Menu
+    + Desktop shortcuts; installed EXE launches and serves index 200 + assets 200
+- Root cause note: first silent installs exited 2 because a stale setup process
+  from a timed-out run held the NSIS mutex; killed it and reinstalled cleanly
+
+**Storage root-bug fix (same commit)**
+- `bulkPut` never deleted records → restoreBackup / deleteProject / cascades
+  silently left orphaned data. Added real `replaceStore` (clear + put in one tx)
+- Browser-verified: restore rollback works; project delete cascades every entity
+  type 1→0; chapter/scene cascades verified
+
+**Full browser matrix (pre-commit, on the exact build)**
+- CRUD for projects/chapters/scenes/characters/locations/objects/notes/world/
+  timeline/goals/comments/relationships/versions/sessions/agent-tasks/backups
+- All 6 export formats, DOCX export→import round-trip, backup create→list→
+  get→checksum→restore→delete, search, session tracking (13 words typed = 13
+  recorded), milestone snapshot (35 words captured), relationship names + delete,
+  health dangling-ref computation
+- Zero console errors, zero failed requests
+
+**Live deployment (commit a5ad252)**
+- CI ✅ + Pages deploy ✅ (run 31936550446, 50s); https://Alot1z.github.io/open-writer/ 200
+- Live bundle verified to contain `replaceStore` (chunk d0a35d87c8a9d360)
