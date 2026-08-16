@@ -37,10 +37,12 @@ import {
   Download,
   Upload,
   Database,
+  Cloud,
 } from "lucide-react"
 import { ExportPanel } from "./export-panel"
 import { ImportPanel } from "./import-panel"
 import { BackupPanel } from "./backup-panel"
+import { StoragePanel } from "./storage-panel"
 
 interface EditorSettings {
   fontFamily: "serif" | "sans" | "mono"
@@ -226,6 +228,11 @@ export function SettingsDialog() {
               <Upload className="size-3" />
               Import
             </TabsTrigger>
+            <TabsTrigger value="storage" className="text-xs gap-1">
+  <Cloud className="size-3" />
+  Storage
+</TabsTrigger>
+
             <TabsTrigger value="backup" className="text-xs gap-1">
               <Database className="size-3" />
               Backup
@@ -699,7 +706,12 @@ export function SettingsDialog() {
                 </div>
               ))}
             </TabsContent>
-          </ScrollArea>
+                    {/* Storage Tab */}
+          <TabsContent value="storage" className="px-6 py-4">
+            <StoragePanel />
+          </TabsContent>
+
+        </ScrollArea>
         </Tabs>
 
         <div className="border-t px-6 py-3 flex justify-end gap-2">
