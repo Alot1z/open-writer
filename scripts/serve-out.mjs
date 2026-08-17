@@ -25,6 +25,7 @@ const MIME = {
   ".svg": "image/svg+xml",
   ".png": "image/png",
   ".txt": "text/plain; charset=utf-8",
+  ".webmanifest": "application/manifest+json",
 }
 
 const server = http.createServer((req, res) => {
