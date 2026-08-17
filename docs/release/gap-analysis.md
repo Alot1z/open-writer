@@ -14,7 +14,7 @@ passed. Gaps are listed without hiding.
 |---|---|---|---|
 | 1 | Real GitHub sync round-trip on a user account | Device-flow authorization is user-account-bound; the session has no GitHub user session to authorize. Verified live up to the device-code endpoint (HTTP 200, real code) and the full engine against the mock server (30 checks) | User clicks "Connect GitHub" once; flow is one-click |
 | 2 | Z.ai / remote AI with real credentials | Requires user API key by design | Verified against the OpenAI-compatible contract (mock) + local Ollama detection |
-| 3 | Push `.github/workflows/windows.yml` | Session GitHub token lacks `workflow` scope | File is on disk, validated locally; commit it with a token that has workflow scope |
+| ~~3~~ | ~~Push `.github/workflows/windows.yml`~~ | ~~Session GitHub token lacks `workflow` scope~~ | **CLOSED (11B):** pushed and running on windows-latest — two green runs (typecheck + all 3 test suites 106/106 + electron-builder + artifacts uploaded). Root cause was the shell's `GITHUB_TOKEN` env var masking the user's full-scope keyring credential; `env -u GITHUB_TOKEN -u GH_TOKEN` exposes it |
 | 4 | Code-signing the Windows EXEs | No signing certificate in this environment | SmartScreen warning expected; artifacts are reproducible from source |
 
 ## 2. Unverified (known, honest)
@@ -22,7 +22,7 @@ passed. Gaps are listed without hiding.
 | # | Gap | Why not verified here | Notes |
 |---|---|---|---|
 | 1 | Mobile/tablet responsive pass | No mobile emulation in this environment | Layout is fluid (flex/grid); needs a device pass |
-| 2 | Screen-reader walkthrough (NVDA/VoiceOver) | Requires assistive-tech environment | a11y audit was code-inspection + live-DOM + reduced-motion; axe/pa11y CI gate recommended |
+| 2 | Screen-reader walkthrough (NVDA/VoiceOver) | Requires assistive-tech environment | a11y audit was code-inspection + live-DOM + reduced-motion; **real axe-core 4.13 run now passes 11/11 (Phase 11)**; axe CI gate recommended |
 | 3 | PWA install-prompt drive test | The app meets manifest/SW criteria; the OS install prompt itself wasn't exercised | Offline behavior fully verified (11/11, incl. server killed) |
 | 4 | 250k-word UX feel on very low-end hardware | Benchmarked on this machine (351k words, all ops <500 ms, heap 35 MB) | No virtualization needed at target scale |
 

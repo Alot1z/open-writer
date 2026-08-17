@@ -38,17 +38,16 @@ after `keep-remote`.
 
 All 30 mock-sync checks still pass with the fix.
 
-## Cleanup limitation (REAL_ACCOUNT_TEST partially blocked)
+## Cleanup — resolved
 
-The `gh` token in this environment has scopes `read:org`, `repo` — **not**
-`delete_repo`. GitHub requires `delete_repo` (or admin) to delete a
-repository, so the test repository could not be removed automatically:
+The test repository `Alot1z/open-writer-storage-phase11-test` was deleted
+once a credential with `delete_repo` scope became available (the user's
+stored keyring credential). `GET /repos/Alot1z/open-writer-storage-phase11-test`
+now returns 404. No test data remains on the account.
 
-- **Repo left behind:** `Alot1z/open-writer-storage-phase11-test` (private,
-  contains only the test novel + sync metadata).
-- **To remove:** run `gh auth refresh -h github.com -s delete_repo` once,
-  then `gh repo delete Alot1z/open-writer-storage-phase11-test --yes`, or
-  delete it in the GitHub web UI (Settings → Danger Zone).
+Note: the `GITHUB_TOKEN` environment variable in the shell only has
+`read:org`, `repo` — unsetting it (`env -u GITHUB_TOKEN -u GH_TOKEN`) lets
+`gh`/git use the user's keyring credential, which has the full scope set.
 
 The full *interactive* device-flow authorization (visit URL → enter code →
 authorize) still requires a human at the keyboard, so that half is marked
@@ -56,6 +55,9 @@ authorize) still requires a human at the keyboard, so that half is marked
 perform without a user. Everything downstream of authorization
 (repo create/discover, sync, restore, conflict, history) is now verified
 against the real API with a real account.
+
+**Update (11B):** test repo deleted (see Cleanup below); the only remaining
+human-only step is the interactive device-flow authorization itself.
 
 ## Verification artifacts
 
