@@ -119,8 +119,9 @@
       "output": "dist",
       "buildResources": "electron"
     },
-    "win": {
-      "target": [
+  "win": {
+    "icon": "electron/icon.ico",
+    "target": [
         {
           "target": "nsis",
           "arch": [

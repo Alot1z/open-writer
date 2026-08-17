@@ -84,11 +84,23 @@ GitHub Pages / Electron (same static bundle)
 | Performance engineering | None required — all ops within budget at 3.5× target; heaviest op (DOCX export) 480 ms |
 | Reports | `docs/release/offline-verification.md`, `docs/release/performance-report.md` |
 
+## Phase 5 (Windows desktop) — verified on real packaged EXE
+
+| Item | Evidence |
+| ---- | ---- |
+| Framework decision | Electron retained — loads the byte-identical Pages bundle (parity by construction), tray + IPC already present; no migration |
+| Artifacts | NSIS installer + portable + win-unpacked built (custom icon), Windows CI workflow added |
+| Runtime (packaged EXE) | Real renderer via CDP: bridge (win32), 18 panels, all 11 settings tabs, project/chapter/scene write, search, backup |
+| Persistence fix | **Ephemeral port → persisted port** (`%APPDATA%/open-writer/port.json`); was silently losing all data between launches (7 orphan origins). Verified close→reopen data intact |
+| Offline | Local server from bundled out/ — no network for core writing |
+| Reports | `docs/release/feature-parity.md`, `docs/release/windows-verification.md` |
+
 ## MISSING / open gaps (non-blocking)
 
 - Mobile/tablet responsive audit; accessibility (screen-reader) audit
 - Import preview dialog
 - PWA installation-prompt drive test (manifest/SW criteria verified; prompt not exercised in this environment)
+- Windows executables unsigned (SmartScreen warning expected; no cert in this environment)
 
 ## Cleanup items (from audit)
 
