@@ -28,7 +28,7 @@ interface ContinuityReport {
 
 const SEVERITY_STYLE: Record<string, string> = {
   info: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
-  warning: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  warning: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
   error: 'bg-red-500/15 text-red-400 border-red-500/30',
 }
 
@@ -104,7 +104,7 @@ export function ContinuityPanel() {
           <div className="space-y-3">
             <div className="flex gap-2 text-xs">
               <Badge className="bg-red-500/15 text-red-400 border-red-500/30">{errors.length} errors</Badge>
-              <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30">{warnings.length} warnings</Badge>
+              <Badge className="bg-orange-500/15 text-orange-400 border-orange-500/30">{warnings.length} warnings</Badge>
               <Badge className="bg-sky-500/15 text-sky-400 border-sky-500/30">{infos.length} notes</Badge>
             </div>
 

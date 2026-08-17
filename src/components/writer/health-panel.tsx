@@ -194,7 +194,7 @@ export function HealthPanel() {
               </Badge>
             )}
             {warningCount > 0 && (
-              <Badge variant="outline" className="text-[10px] gap-1 text-amber-600 border-amber-200">
+              <Badge variant="outline" className="text-[10px] gap-1 text-orange-600 border-orange-200">
                 <AlertTriangle className="h-3 w-3" />
                 {warningCount}
               </Badge>
@@ -222,13 +222,13 @@ export function HealthPanel() {
 
             const statusColors = {
               ok: 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20',
-              warning: 'border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20',
+              warning: 'border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/20',
               error: 'border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20',
             }
 
             const statusIconColors = {
               ok: 'text-emerald-500',
-              warning: 'text-amber-500',
+              warning: 'text-orange-500',
               error: 'text-red-500',
             }
 

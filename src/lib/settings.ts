@@ -70,7 +70,7 @@ export const DEFAULT_GOALS: GoalSettings = {
 
 export const DEFAULT_APPEARANCE: AppearanceSettings = {
   theme: "system",
-  accentColor: "amber",
+  accentColor: "indigo",
   focusModeDefaults: false,
 }
 

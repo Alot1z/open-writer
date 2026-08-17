@@ -108,7 +108,7 @@ const DEFAULT_GOALS: GoalSettings = {
 
 const DEFAULT_APPEARANCE: AppearanceSettings = {
   theme: "system",
-  accentColor: "emerald",
+  accentColor: "indigo",
   focusModeDefaults: false,
 }
 
@@ -186,7 +186,7 @@ export function SettingsDialog() {
     <Dialog open={isSettingsOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[620px] max-h-[85vh] p-0 gap-0">
         <DialogHeader className="px-6 pt-6 pb-2">
-          <DialogTitle>Settings</DialogTitle>
+          <DialogTitle className="font-display tracking-tight">Settings</DialogTitle>
           <DialogDescription>
             Configure your writing environment
           </DialogDescription>
@@ -454,12 +454,13 @@ export function SettingsDialog() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="indigo">Indigo</SelectItem>
                     <SelectItem value="emerald">Emerald</SelectItem>
-                    <SelectItem value="amber">Amber</SelectItem>
-                    <SelectItem value="rose">Rose</SelectItem>
                     <SelectItem value="teal">Teal</SelectItem>
-                    <SelectItem value="orange">Orange</SelectItem>
                     <SelectItem value="violet">Violet</SelectItem>
+                    <SelectItem value="rose">Rose</SelectItem>
+                    <SelectItem value="orange">Orange</SelectItem>
+                    <SelectItem value="amber">Amber</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

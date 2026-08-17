@@ -5,12 +5,13 @@ import { useTheme } from "next-themes"
 import { loadAppearanceSettings, subscribeSettings } from "@/lib/settings"
 
 const ACCENTS: Record<string, { light: string; lightSoft: string; dark: string; darkSoft: string }> = {
-  amber: { light: "#d97706", lightSoft: "#fef3c7", dark: "#f59e0b", darkSoft: "#422006" },
+  indigo: { light: "#4f46e5", lightSoft: "#eef2ff", dark: "#818cf8", darkSoft: "#232645" },
   emerald: { light: "#059669", lightSoft: "#d1fae5", dark: "#34d399", darkSoft: "#064e3b" },
-  rose: { light: "#e11d48", lightSoft: "#ffe4e6", dark: "#fb7185", darkSoft: "#4c0519" },
   teal: { light: "#0d9488", lightSoft: "#ccfbf1", dark: "#2dd4bf", darkSoft: "#134e4a" },
-  orange: { light: "#ea580c", lightSoft: "#ffedd5", dark: "#fb923c", darkSoft: "#431407" },
   violet: { light: "#7c3aed", lightSoft: "#ede9fe", dark: "#a78bfa", darkSoft: "#2e1065" },
+  rose: { light: "#e11d48", lightSoft: "#ffe4e6", dark: "#fb7185", darkSoft: "#4c0519" },
+  orange: { light: "#ea580c", lightSoft: "#ffedd5", dark: "#fb923c", darkSoft: "#431407" },
+  amber: { light: "#d97706", lightSoft: "#fef3c7", dark: "#f59e0b", darkSoft: "#422006" },
 }
 
 /**
@@ -26,7 +27,7 @@ export function ThemeSync() {
 
     const applyAccent = () => {
       const appearance = loadAppearanceSettings()
-      const accent = ACCENTS[appearance.accentColor] ?? ACCENTS.amber
+      const accent = ACCENTS[appearance.accentColor] ?? ACCENTS.indigo
       const isDark = document.documentElement.classList.contains("dark")
       const root = document.documentElement
       root.style.setProperty("--writer-accent", isDark ? accent.dark : accent.light)

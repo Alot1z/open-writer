@@ -126,6 +126,19 @@ GitHub Pages / Electron (same static bundle)
 | Tests | `bun scripts/test-ai.ts` → **55 passed, 0 failed**; sync suite re-run **30/30**; tsc + eslint clean |
 | Docs | `docs/architecture/ai.md`, `docs/release/ai-verification.md` |
 
+## Phase 8 (visual design rebuild — Ink & Paper) — verified
+
+| Item | Evidence |
+| ---- | ---- |
+| Design contract | `DESIGN.md` — brand, color, typography, spacing, hierarchy, components, motion, a11y, anti-patterns; inspired by DesignMD catalog + Linear's contract structure; Novlr as product/UX reference |
+| Brand accent | Amber → **indigo** (one restrained chromatic accent); entire `amber-*` utility scale remapped to indigo at theme level (137 refs, 35 files converted in one stroke) |
+| Palettes | Light `#faf7f2` warm paper / ink `#23201b`; dark `#15161b` cool ink / `#e9e7e1`; hairline borders; charts indigo/teal/violet/orange |
+| Warnings | Re-pointed to **orange** (storage conflict/full, health + continuity severities, unsaved state) so semantics survive the remap |
+| Typography | Serif display (Georgia/Source Serif 4) for wordmark, project names, dialog titles, editor headings; editor prose at 1.85 line-height |
+| Accent options | Indigo (default) first, Amber last; `--writer-accent` applied at runtime by ThemeSync |
+| QA | Computed-style verification in real browser (light + dark): tokens landed, `bg-amber-500` → `rgb(99,102,241)` indigo, serif applied, editor 1.85; tsc + eslint clean |
+| Docs | `DESIGN.md`, `docs/design/design-research.md`, `docs/release/design-verification.md` |
+
 ## MISSING / open gaps (non-blocking)
 
 - Mobile/tablet responsive audit; accessibility (screen-reader) audit
