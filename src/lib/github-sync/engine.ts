@@ -551,7 +551,9 @@ export class SyncEngine {
         }
         // Both sides changed
         ps.status = "conflict"
+        ps.remoteVersion = remote.version
         this.conflictFor = id
+        this.save()
         this.emit({
           status: "conflict",
           message: `Open Writer found changes on another device for “${remote.name}”.`,

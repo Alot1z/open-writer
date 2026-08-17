@@ -65,9 +65,9 @@ function choosePort() {
   })
 }
 
-// 16×16 tray icon (amber square with a darker quill), generated once
+// 16×16 tray icon (indigo rounded square with a white quill, Ink & Paper brand)
 const TRAY_ICON_BASE64 =
-  "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAATklEQVR4nGNgGFTg6zzu/8RgnJorTPnBmCxDkA0gxhCczifWELz+J8YQggFIyBCiYgCfIURHIS5DSEoD2AwhyQBsaYRkA4hOjWRrHjAAAI4IV9pu1CM3AAAAAElFTkSuQmCC"
+  "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAABHklEQVR4nGNgYGBgCHB74uPv+uSUn+vTn/5uT//jw2A1ILXuj70Z4Jrd8GvCgwMY/N2enManKMAdQlcWvf6/fNEndNecZMDl7FDfZ//Pnf7xvyj71f8gr2f/nz75/b+/8x2qOtenPxhw2ZyZ+PL/rRs/wZpnT/vwHwTK8l9jqGPA5/y68jf/Vy///P/+3V//37z+8//IwW//Az1IMGDdys//F8z+iDcgGXBJpMa++H/8yLf/oT7PyDPgyMFv/z+8//u/oug1eQakxLz4v3715/9/fv/7v3rZZ3h0EjQgFM3J1SVv/l+78vN/XNhz4gzoankHTgPEpkYGYtI/TgxJSPiTMj4MScruj73JdoHLYy9wjgQZAjKN2OwMUgvTDADaKX/bc5IYtgAAAABJRU5ErkJggg=="
 
 const MIME = {
   ".html": "text/html; charset=utf-8",

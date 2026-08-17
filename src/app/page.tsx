@@ -112,6 +112,9 @@ export default function Home() {
     return (
       <TooltipProvider>
         <ProjectPicker />
+        <CommandPalette />
+        <GlobalSearch />
+        <SettingsDialogWithTrigger />
       </TooltipProvider>
     )
   }
@@ -126,9 +129,9 @@ export default function Home() {
             chapterTitle={chapterTitle}
             sceneTitle={sceneTitle}
           />
-          <div className="flex-1 overflow-hidden">
+          <main className="flex-1 overflow-hidden" aria-label="Editor">
             <EditorArea />
-          </div>
+          </main>
           <StatusBar
             saveStatus={saveStatus}
             totalWordCount={totalWordCount}
@@ -152,7 +155,7 @@ export default function Home() {
           sceneTitle={sceneTitle}
         />
 
-        <div className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-hidden" aria-label="Writer workspace">
           <ResizablePanelGroup direction="horizontal">
             <ResizablePanel
               defaultSize={18}
@@ -181,7 +184,7 @@ export default function Home() {
               <RightPanel />
             </ResizablePanel>
           </ResizablePanelGroup>
-        </div>
+        </main>
 
         <StatusBar
           saveStatus={saveStatus}

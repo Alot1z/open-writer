@@ -122,6 +122,8 @@ export function ProjectPicker({ onProjectSelect }: ProjectPickerProps) {
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
         className="min-h-screen flex items-center justify-center p-6 bg-writer-bg"
+        role="main"
+        aria-label="Open Writer projects"
       >
         <div className="w-full max-w-xl">
           {/* Hero Logo */}
