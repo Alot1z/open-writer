@@ -43,7 +43,7 @@ const TONE_CLASSES: Record<string, string> = {
   neutral: "bg-muted text-muted-foreground",
   brand: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
   success: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
-  warning: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+  warning: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300",
   danger: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
   muted: "bg-muted text-muted-foreground",
 }
@@ -237,7 +237,7 @@ export function StoragePanel() {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertTriangle className="h-4 w-4 text-orange-600" />
                 Changes found on another device
               </DialogTitle>
               <DialogDescription>

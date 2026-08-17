@@ -108,7 +108,7 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
               setNameValue(currentProjectName)
               setIsEditingName(true)
             }}
-            className="text-sm font-semibold truncate hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-default"
+            className="text-sm font-semibold truncate hover:text-writer-accent transition-colors cursor-default font-display tracking-tight"
           >
             {currentProjectName || 'Untitled'}
           </button>
