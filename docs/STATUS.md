@@ -1,6 +1,6 @@
 # Open Writer — Project Status
 
-**Last Updated:** 2026-08-16 (Phase 2 product core)
+**Last Updated:** 2026-08-17 (Phase 11B Windows CI verification)
 
 ## Headline status ✅
 
@@ -164,14 +164,14 @@ GitHub Pages / Electron (same static bundle)
 
 | Item | Evidence |
 | ---- | ---- |
-| Real GitHub account E2E | Live against api.github.com with a real credential, driving the real engine: connect → **private repo created on GitHub** → meta + snapshot v1 + chunks + index → edit → v2 (new chunk, dedup) → device B restore (content byte-verified) → independent edits → **conflict detected** → keep-remote → B holds A's latest rewrite → history restore (v1 integrity). **25/26**; only "failure" is repo deletion — token lacks `delete_repo` scope (credential limit; see below). **Found + fixed a real bug**: keep-remote pulled the stale version; engine now records the new remote version on conflict |
+| Real GitHub account E2E | Live against api.github.com with a real credential, driving the real engine: connect → **private repo created on GitHub** → meta + snapshot v1 + chunks + index → edit → v2 (new chunk, dedup) → device B restore (content byte-verified) → independent edits → **conflict detected** → keep-remote → B holds A's latest rewrite → history restore (v1 integrity). **25/26**; the only initial failure was cleanup, later resolved with the full-scope keyring credential (`delete_repo`); the test repository was deleted and 404-confirmed. **Found + fixed a real bug**: keep-remote pulled the stale version; engine now records the new remote version on conflict |
 | Autosave | **Found + fixed a silent-data-loss path**: autosave debounced 30s with no flush, so typing then closing lost content. Now flushes on scene switch, unmount, `pagehide` and `visibilitychange(hidden)`; Ctrl/Cmd+S saves immediately (no browser dialog). Verified in browser + EXE |
 | Keyboard | **Found + fixed**: Ctrl+, Ctrl+\ were documented but never wired (only Ctrl+K / Ctrl+Shift+F); and global shortcuts + Settings were **absent on the project picker screen**. All wired; `scripts/test-keyboard.mjs` = **7/7 live**: Ctrl+K, Ctrl+Shift+F, Ctrl+,, Ctrl+\, Ctrl+S, editor surface |
 | Logo / brand | Amber → indigo everywhere: PWA icons (192/512/maskable/apple), `manifest.webmanifest` theme `#4f46e5`, `logo.svg` (pen mark), Electron `icon.ico` (7 sizes, regenerated), tray icon (indigo quill). `generate-icons.mjs` rewritten for the brand |
 | Accessibility | **Real axe-core 4.13 run — 11/11, zero violations** on picker + writer view (`scripts/axe-audit.mjs`). Fixed: missing `<main>`/`<h1>`, banner/contentinfo nested in main, 3 contrast failures (translucent amber/stone text), flow-widget portal region, command-palette sr-only header placement |
 | Suites | 30 sync + 21 recovery + 55 AI = **106/106 green**; `tsc --noEmit` clean; static build + SW regenerated |
 | Windows EXE | Rebuilt with all Phase 11 fixes + brand. Runtime probe of `win-unpacked`: hydrated, local API live, Ctrl+K on picker, project created via UI, **Ctrl+S intercepted**. Bundle verified to contain the self-heal + flush + brand code |
-| Windows CI (11B) | `.github/workflows/windows.yml` **pushed and running** (was blocked by token scope; the shell's `GITHUB_TOKEN` env var masked the user's full-scope keyring credential — `env -u GITHUB_TOKEN -u GH_TOKEN` exposes it). Two green runs on windows-latest: typecheck, **all 3 test suites (106/106)**, static export, electron-builder, artifact verification + upload. Artifacts: Setup + Portable + win-unpacked. Test repo cleanup also unblocked (`delete_repo` scope) — `open-writer-storage-phase11-test` deleted, 404 confirmed |
+| Windows CI (11B) | **WINDOWS_CI_VERIFIED** — `.github/workflows/windows.yml` is pushed and has green runs `32033043603` and `32033897096` on `windows-latest`: checkout, frozen install, typecheck, **all 3 test suites (106/106)**, static export, bundle checks, electron-builder, artifact verification + upload. Latest run artifacts are non-expired: Setup (91,698,278 bytes), Portable (91,492,436 bytes), win-unpacked (135,480,666 bytes); Portable downloaded and identified as a PE32 Windows executable. Test repo cleanup also unblocked (`delete_repo` scope) — `open-writer-storage-phase11-test` deleted, 404 confirmed |
 | Docs | `docs/release/github-real-account-verification.md` (new), accessibility-report Phase 11 section (real axe results) |
 
 ## MISSING / open gaps (non-blocking — full list in docs/release/gap-analysis.md)
@@ -194,6 +194,7 @@ GitHub Pages / Electron (same static bundle)
 ## Recent commits
 
 ```
+271078f docs: record Phase 11B Windows CI verification + test repo cleanup
 26e6a7f ci: run sync/recovery/AI test suites in the Windows workflow (11B)
 1abc7ba ci: add Windows desktop build workflow (NSIS installer + portable + tests) (11B)
 96b2705 feat: Phase 11 — real GitHub account verification, autosave flush, keyboard, brand + axe a11y
