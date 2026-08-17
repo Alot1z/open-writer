@@ -26,7 +26,44 @@ const fs = require("node:fs")
 const path = require("node:path")
 
 const BASE_PATH = "/open-writer"
-const PORT = 0 // ephemeral — the OS assigns a free port
+
+/**
+ * Port selection: the origin (host:port) is the storage key for IndexedDB
+ * and localStorage, so an ephemeral port means a NEW empty storage partition
+ * on every launch — user data and settings would silently vanish between
+ * sessions. Instead we pick a free port on first run, persist it, and reuse
+ * it on later launches so the origin (and therefore the user's data) is
+ * stable. If the saved port is taken, fall back to a fresh free port.
+ */
+const PORT_FILE = () => path.join(app.getPath("userData"), "port.json")
+
+function choosePort() {
+  try {
+    const saved = JSON.parse(fs.readFileSync(PORT_FILE(), "utf8")).port
+    if (typeof saved === "number" && saved > 0 && saved < 65536) return saved
+  } catch {
+    // first run or unreadable file — pick a fresh port
+  }
+  // Ask the OS for a free port, then keep it for next launch.
+  const net = require("node:net")
+  const server = net.createServer()
+  return new Promise((resolve, reject) => {
+    server.unref()
+    server.on("error", reject)
+    server.listen(0, "127.0.0.1", () => {
+      const port = server.address().port
+      server.close(() => {
+        try {
+          fs.mkdirSync(path.dirname(PORT_FILE()), { recursive: true })
+          fs.writeFileSync(PORT_FILE(), JSON.stringify({ port }))
+        } catch {
+          // non-fatal: a fresh port is still picked next launch
+        }
+        resolve(port)
+      })
+    })
+  })
+}
 
 // 16×16 tray icon (amber square with a darker quill), generated once
 const TRAY_ICON_BASE64 =
@@ -53,7 +90,7 @@ const MIME = {
   ".map": "application/json",
 }
 
-function startServer() {
+function startServer(port) {
   const root = path.join(__dirname, "..", "out")
   if (!fs.existsSync(path.join(root, "index.html"))) {
     console.error("out/index.html not found. Run `bun run build` first.")
@@ -103,7 +140,7 @@ function startServer() {
   })
 
   return new Promise((resolve) => {
-    server.listen(PORT, "127.0.0.1", () => {
+    server.listen(port, "127.0.0.1", () => {
       resolve({ server, port: server.address().port })
     })
   })
@@ -252,7 +289,8 @@ if (!gotLock) {
   })
 
   app.whenReady().then(async () => {
-    const url = await startServer()
+    const port = await choosePort()
+    const url = await startServer(port)
     if (!url) return
     createTray()
     createWindow(url)
