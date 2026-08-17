@@ -5,6 +5,7 @@ import { useWriterStore } from "@/store/writer-store"
 import { useAIAssistant } from "@/lib/ai/use-ai-assistant"
 import { loadAISettings, loadPrivacySettings } from "@/lib/settings"
 import { stripHtml } from "@/lib/local-api/services"
+import { AgentTaskView } from "./agent-task-view"
 import { PERMISSION_LABELS, PERMISSION_DESCRIPTIONS } from "@/lib/ai/provider"
 import type { PermissionLevel } from "@/lib/ai/provider"
 import { Button } from "@/components/ui/button"
@@ -43,6 +44,7 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
+  Play,
 } from "lucide-react"
 
 const QUICK_ACTIONS = [
@@ -93,12 +95,72 @@ const QUICK_ACTIONS = [
 const PROVIDER_NAMES: Record<string, string> = {
   zai: "Z.ai",
   none: "None",
+  ollama: "Ollama (Local)",
+  custom: "Custom",
 }
+
+function formatTiny(kind: string, data: Record<string, unknown>): string {
+  switch (kind) {
+    case "proofread": {
+      const issues = (data.issues as Array<{ message: string; suggestion?: string }>) ?? []
+      if (issues.length === 0) return "No deterministic proofreading issues found."
+      return `${issues.length} issue${issues.length === 1 ? "" : "s"}:\n` + issues.map((i) => `- ${i.message}${i.suggestion ? ` → ${i.suggestion}` : ""}`).join("\n")
+    }
+    case "tags": {
+      const tags = (data.tags as string[]) ?? []
+      const meta = (data.metadata as { wordCount?: number; sentenceCount?: number; dialogueLines?: number }) ?? {}
+      return [
+        `Word count: ${meta.wordCount ?? 0} · Sentences: ${meta.sentenceCount ?? 0} · Dialogue lines: ${meta.dialogueLines ?? 0}`,
+        `Suggested tags: ${tags.length ? tags.join(", ") : "none"}`,
+      ].join("\n")
+    }
+    case "classify": {
+      const scenes = (data.scenes as Array<{ title: string; category: string; confidence: number }>) ?? []
+      return scenes.length === 0
+        ? "No scenes to classify."
+        : scenes.map((s) => `- ${s.title}: ${s.category} (${Math.round(s.confidence * 100)}%)`).join("\n")
+    }
+    case "continuity": {
+      const issues = (data.issues as Array<{ problem: string; confidence: number; evidence: string; source: string }>) ?? []
+      return issues.length === 0
+        ? "No continuity issues found by deterministic rules."
+        : issues.map((i) => `- [${Math.round(i.confidence * 100)}%] ${i.problem} — ${i.evidence} (${i.source})`).join("\n")
+    }
+    case "summary":
+      return (data.summary as string) || "No summary produced."
+    case "duplicates": {
+      const chars = (data.characterDuplicates as Array<{ a: string; b: string; similarity: number }>) ?? []
+      const locs = (data.locationDuplicates as Array<{ a: string; b: string; similarity: number }>) ?? []
+      const fmt = (items: Array<{ a: string; b: string; similarity: number }>) =>
+        items.length === 0
+          ? "none"
+          : items.map((p) => `- ${p.a} ≈ ${p.b} (${Math.round(p.similarity * 100)}%)`).join("\n")
+      return `Characters:\n${fmt(chars)}\n\nLocations:\n${fmt(locs)}`
+    }
+    default:
+      return JSON.stringify(data, null, 2)
+  }
+}
+
+const TINY_TOOLS = [
+  { kind: "proofread", label: "Proofread", icon: FileText },
+  { kind: "tags", label: "Tags & metadata", icon: Sparkles },
+  { kind: "classify", label: "Classify scenes", icon: Bot },
+  { kind: "continuity", label: "Continuity", icon: GitBranch },
+  { kind: "summary", label: "Summarize", icon: FileText },
+  { kind: "duplicates", label: "Duplicates", icon: Users },
+] as const
 
 export function AgentPanel() {
   const [input, setInput] = useState("")
   const [showActions, setShowActions] = useState(true)
   const [contextInfo, setContextInfo] = useState("")
+  const [taskGoal, setTaskGoal] = useState("")
+  const [taskId, setTaskId] = useState<string | null>(null)
+  const [taskBusy, setTaskBusy] = useState(false)
+  const [tinyBusy, setTinyBusy] = useState<string | null>(null)
+  const [tinyResults, setTinyResults] = useState<Array<{ kind: string; label: string; content: string }>>([])
+  const [localError, setLocalError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -133,11 +195,15 @@ export function AgentPanel() {
   // Builds context according to the AI context-scope setting. Only the
   // requested scope is ever included in the prompt.
   const getContextString = async (): Promise<string> => {
-    const scope = loadAISettings().contextScope
+    const aiSettings = loadAISettings()
+    const scope = aiSettings.contextScope
     const parts: string[] = []
     if (currentProjectName) parts.push(`Project: ${currentProjectName}`)
     try {
-      if (scope === "current-scene" && currentSceneId) {
+      if (scope === "custom") {
+        const custom = aiSettings.customContext?.trim()
+        if (custom) parts.push(`Custom context:\n${custom.slice(0, 4000)}`)
+      } else if (scope === "current-scene" && currentSceneId) {
         const res = await fetch(`/api/scenes/${currentSceneId}`)
         if (res.ok) {
           const sc = await res.json()
@@ -151,6 +217,51 @@ export function AgentPanel() {
             .map((s: { title: string; content?: string }) => `## ${s.title}\n${stripHtml(s.content ?? "").slice(0, 1500)}`)
             .join("\n\n")
           parts.push(`Chapter \"${ch.title}\":\n${scenes.slice(0, 8000)}`)
+        }
+      } else if (scope === "project-summary" && currentProjectId) {
+        const [chRes, castRes, locRes] = await Promise.all([
+          fetch(`/api/chapters?projectId=${currentProjectId}`),
+          fetch(`/api/characters?projectId=${currentProjectId}`),
+          fetch(`/api/locations?projectId=${currentProjectId}`),
+        ])
+        const chapters = chRes.ok ? await chRes.json() : []
+        const cast = castRes.ok ? await castRes.json() : []
+        const locs = locRes.ok ? await locRes.json() : []
+        const sceneCount = (chapters as { scenes?: unknown[] }[]).reduce((n, c) => n + (c.scenes?.length ?? 0), 0)
+        parts.push(
+          `Project summary: ${(chapters as { title: string }[]).length} chapters, ${sceneCount} scenes, ${(cast as { name: string }[]).length} characters, ${(locs as { name: string }[]).length} locations.`
+        )
+        parts.push(`Cast: ${(cast as { name: string }[]).map((c) => c.name).join(", ") || "none"}`)
+        parts.push(`Locations: ${(locs as { name: string }[]).map((l) => l.name).join(", ") || "none"}`)
+      } else if (scope === "related-entities" && currentSceneId && currentProjectId) {
+        const [sceneRes, castRes, locRes] = await Promise.all([
+          fetch(`/api/scenes/${currentSceneId}`),
+          fetch(`/api/characters?projectId=${currentProjectId}`),
+          fetch(`/api/locations?projectId=${currentProjectId}`),
+        ])
+        const sc = sceneRes.ok ? await sceneRes.json() : null
+        const cast = castRes.ok ? await castRes.json() : []
+        const locs = locRes.ok ? await locRes.json() : []
+        if (sc) {
+          const text = stripHtml(sc.content ?? "")
+          const lower = text.toLowerCase()
+          const mentioned = (list: { name: string }[]) =>
+            list.filter((e) => e.name && lower.includes(e.name.toLowerCase())).map((e) => e.name)
+          const chars = mentioned(cast as { name: string }[])
+          const places = mentioned(locs as { name: string }[])
+          parts.push(`Scene \"${sc.title}\":\n${text.slice(0, 3000)}`)
+          parts.push(
+            `Entities mentioned in this scene: characters [${chars.join(", ") || "none"}], locations [${places.join(", ") || "none"}]`
+          )
+        }
+      } else if (scope === "timeline" && currentProjectId) {
+        const res = await fetch(`/api/timeline?projectId=${currentProjectId}`)
+        if (res.ok) {
+          const events = await res.json()
+          const lines = (events as { title: string; date?: string; description?: string }[])
+            .slice(0, 20)
+            .map((e) => `- ${e.date ? `[${e.date}] ` : ""}${e.title}${e.description ? ` — ${e.description.slice(0, 120)}` : ""}`)
+          if (lines.length) parts.push(`Timeline:\n${lines.join("\n")}`)
         }
       } else if (scope === "full-project" && currentProjectId) {
         const res = await fetch(`/api/chapters?projectId=${currentProjectId}`)
@@ -191,8 +302,91 @@ export function AgentPanel() {
     }
   }
 
+  const handleRunTask = async () => {
+    if (!taskGoal.trim() || !currentProjectId || taskBusy) return
+    setTaskBusy(true)
+    setTaskId(null)
+    setLocalError(null)
+    try {
+      const res = await fetch("/api/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "run",
+          projectId: currentProjectId,
+          goal: taskGoal.trim(),
+          permission,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || "Could not start the agent task.")
+      }
+      const task = await res.json()
+      setTaskId(task.id)
+      setTaskGoal("")
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Could not start the agent task.")
+    } finally {
+      setTaskBusy(false)
+    }
+  }
+
+  const handleTiny = async (kind: string, label: string) => {
+    if (!currentProjectId || tinyBusy) return
+    setTinyBusy(kind)
+    setLocalError(null)
+    try {
+      const res = await fetch("/api/ai/tiny/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: currentProjectId, kind }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || "Analysis failed.")
+      }
+      const data = await res.json()
+      setTinyResults((prev) => [{ kind, label, content: formatTiny(kind, data) }, ...prev].slice(0, 5))
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Analysis failed.")
+    } finally {
+      setTinyBusy(null)
+    }
+  }
+
   const providerName = PROVIDER_NAMES[providerType] || providerType
   const showTransmissionInfo = loadPrivacySettings().showDataTransmission
+
+  // Poll the running task until it reaches a terminal state.
+  useEffect(() => {
+    if (!taskId) return
+    let stopped = false
+    let attempts = 0
+    const timer = setInterval(async () => {
+      attempts++
+      try {
+        const res = await fetch(`/api/agent-tasks/${taskId}`)
+        if (res.ok) {
+          const t = await res.json()
+          if (t?.status === "completed" || t?.status === "failed" || t?.status === "cancelled") {
+            stopped = true
+            clearInterval(timer)
+          }
+        }
+      } catch {
+        // keep polling
+      }
+      if (attempts > 40) {
+        stopped = true
+        clearInterval(timer)
+      }
+    }, 1200)
+    return () => {
+      clearInterval(timer)
+      void stopped
+    }
+  }, [taskId])
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -280,6 +474,96 @@ export function AgentPanel() {
               </div>
             )}
           </div>
+
+          {/* Agent tasks (deterministic executor + optional LLM compose) */}
+          <div className="space-y-2">
+            <div className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Bot className="size-3" />
+              Agent Tasks
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Runs a goal through deterministic tools — search, stats,
+              continuity, health — with a plan, action log and report.
+              Works with or without an AI model.
+            </p>
+            <div className="flex gap-1.5">
+              <Input
+                value={taskGoal}
+                onChange={(e) => setTaskGoal(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleRunTask()}
+                placeholder="e.g. Check continuity and summarize the arc"
+                className="text-xs h-8"
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 shrink-0 gap-1 text-[11px]"
+                onClick={handleRunTask}
+                disabled={!taskGoal.trim() || taskBusy || !currentProjectId}
+              >
+                {taskBusy ? <Loader2 className="size-3 animate-spin" /> : <Play className="size-3" />}
+                Run
+              </Button>
+            </div>
+            {taskId && (
+              <div className="rounded-lg border border-writer-border bg-muted/10">
+                <AgentTaskView taskId={taskId} />
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* Tiny AI — deterministic, model-free */}
+          <div className="space-y-2">
+            <div className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Sparkles className="size-3" />
+              Tiny AI — no model needed
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              {TINY_TOOLS.map((t) => (
+                <Button
+                  key={t.kind}
+                  variant="outline"
+                  size="sm"
+                  className="h-auto py-1.5 px-1 justify-center text-[10px] gap-1 flex-col"
+                  onClick={() => handleTiny(t.kind, t.label)}
+                  disabled={!!tinyBusy || !currentProjectId}
+                >
+                  {tinyBusy === t.kind ? (
+                    <Loader2 className="size-3 animate-spin" />
+                  ) : (
+                    <t.icon className="size-3 text-amber-600" />
+                  )}
+                  {t.label}
+                </Button>
+              ))}
+            </div>
+            {tinyResults.length > 0 && (
+              <div className="space-y-2">
+                {tinyResults.map((r, i) => (
+                  <div key={`${r.kind}-${i}`} className="rounded-lg border bg-muted/20 p-3 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-medium">{r.label}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-5 px-1 text-[10px] text-muted-foreground"
+                        onClick={() => setTinyResults((prev) => prev.filter((_, j) => j !== i))}
+                      >
+                        <X className="size-3" />
+                      </Button>
+                    </div>
+                    <pre className="text-[10px] whitespace-pre-wrap leading-relaxed text-foreground/80 max-h-48 overflow-y-auto font-sans">
+                      {r.content}
+                    </pre>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <Separator />
 
           {/* AI Suggestions */}
           {activeSuggestions.length > 0 && (
@@ -376,10 +660,10 @@ export function AgentPanel() {
           )}
 
           {/* Error */}
-          {error && (
+          {(error || localError) && (
             <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-2 text-xs text-destructive">
               <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
-              <span>{error}</span>
+              <span>{error || localError}</span>
             </div>
           )}
 
@@ -406,10 +690,10 @@ export function AgentPanel() {
       )}
 
       {/* Privacy info when using remote AI */}
-      {providerType === "zai" && isAvailable && (
+      {(providerType === "zai" || providerType === "custom") && isAvailable && (
         <div className="border-t bg-amber-50 dark:bg-amber-950/20 px-3 py-1 text-[10px] text-amber-700 dark:text-amber-400 flex items-center gap-1">
           <Shield className="size-3" />
-          Data sent to Z.ai for processing
+          Data sent to {providerType === "zai" ? "Z.ai" : "your custom AI endpoint"} for processing
         </div>
       )}
 
