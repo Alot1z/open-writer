@@ -146,6 +146,8 @@ export function LeftSidebar({ className }: LeftSidebarProps) {
                   <Button
                     variant="ghost"
                     size="icon"
+                    aria-label={item.label}
+                    title={item.label}
                     className={cn(
                       'h-7 w-7 rounded-md transition-all duration-150',
                       isActive

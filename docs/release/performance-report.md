@@ -101,8 +101,51 @@ Scenes are ~1,000 words (realistic manuscript granularity). One additional
    of typing. It is configurable in Settings → Writing. (Consider lowering the
    default to ~5 s in a future pass.)
 
+---
+
+## Phase 9 supplement: GitHub sync + local AI benchmarks
+
+Re-benchmarked at 100k/250k words with the **production modules** (snapshot
+builder, tiny-AI) headlessly (`scripts/benchmark-phase9.mjs`). The sync numbers
+are the local CPU cost of the pipeline; GitHub API latency is network-bound and
+separate.
+
+### GitHub sync storage pipeline
+
+| Metric | 100k words | 250k words |
+|---|---|---|
+| Raw project payload | 0.57 MB | 1.43 MB |
+| Compressed (content-addressed chunks) | ~0.05 MB | ~0.05 MB |
+| Compression | 92% smaller | 97% smaller |
+| Snapshot build (compress+chunk+dedup) | 101 ms | 98 ms |
+| Incremental sync, no change | 5 ms, 0 new chunks | 14 ms, 0 new chunks |
+| Incremental sync, 1 scene edited | 7 ms, 1 new chunk | 13 ms, 1 new chunk |
+| Restore (import verified payload) | <1 ms | <1 ms |
+
+Dedup works as designed: identical content uploads **zero** new chunks, and a
+single-scene edit uploads only the changed chunk(s). The compression ratio
+improves with corpus size (97% at 250k) because repeated prose compresses
+better — remote storage cost stays effectively flat as the manuscript grows.
+
+### Tiny AI (deterministic, model-free)
+
+| Operation | 100k corpus | 250k corpus |
+|---|---|---|
+| Metadata extraction | 5 ms | 4 ms |
+| Scene classification | 5 ms | 4 ms |
+| Tag suggestion | 2 ms | 1 ms |
+| Proofread (50-issue pass on sample) | 10 ms | 9 ms |
+| Rerank | <1 ms | <1 ms |
+| Summarize | 6 ms | 5 ms |
+
+Tiny-AI work is O(sample size) — bounded, sub-10 ms at both scales, and free of
+any model download or GPU requirement (the Phase 7 verification also covered
+real Ollama/OpenAI-compatible chat + streaming separately).
+
 ## Verdict
 
 The static Pages build performs comfortably at and beyond the 250k-word target
 on a mid-range machine. No performance engineering changes were required; the
 existing IndexedDB/local-service architecture is the correct one at this scale.
+The sync pipeline is CPU-cheap (≤101 ms builds, single-digit ms incremental),
+compression improves with size, and the tiny-AI layer is effectively free.

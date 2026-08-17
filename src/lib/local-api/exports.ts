@@ -33,7 +33,9 @@ export async function loadProjectBook(projectId: string): Promise<ProjectBook | 
 }
 
 export function sceneListForChapter(book: ProjectBook, chapterId: string): Scene[] {
-  return book.scenes.filter((sc) => sc.chapterId === chapterId).sort((a, b) => a.order - b.order)
+  return (book.scenes ?? [])
+    .filter((sc) => sc && sc.chapterId === chapterId)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 }
 
 function escapeHtml(text: string): string {
@@ -45,7 +47,44 @@ function escapeHtml(text: string): string {
     .replace(/'/g, "&#039;")
 }
 
+/**
+ * Defense-in-depth: export never crashes on corrupt/partial project data.
+ * The app guards before calling (loadProjectBook returns null), but a
+ * partially corrupted store must still export rather than crash — the
+ * damaged rows are dropped, everything else is preserved.
+ */
+export function sanitizeBook(book: ProjectBook | null | undefined): ProjectBook {
+  const emptyProject: Project = {
+    id: "",
+    name: "Untitled",
+    description: "",
+    genre: "",
+    synopsis: "",
+    status: "draft",
+    coverImage: "",
+    settings: "",
+    createdAt: "",
+    updatedAt: "",
+  }
+  if (!book || typeof book !== "object") {
+    return { project: emptyProject, chapters: [], scenes: [] }
+  }
+  const rawProject = book.project && typeof book.project === "object" ? book.project : null
+  const project: Project = {
+    ...emptyProject,
+    ...(rawProject ?? {}),
+    name: String((rawProject as { name?: unknown } | null)?.name ?? "Untitled"),
+  }
+  const asArray = <T,>(v: T[] | T | null | undefined): T[] => (Array.isArray(v) ? v : [])
+  return {
+    project,
+    chapters: asArray(book.chapters),
+    scenes: asArray(book.scenes),
+  }
+}
+
 export function buildMarkdown(book: ProjectBook): string {
+  book = sanitizeBook(book)
   const lines: string[] = []
   lines.push(`# ${book.project.name}`)
   lines.push("")
@@ -81,6 +120,7 @@ export function buildMarkdown(book: ProjectBook): string {
 }
 
 export async function buildJson(book: ProjectBook): Promise<string> {
+  book = sanitizeBook(book)
   const exportData = {
     version: "1.0",
     exportedAt: new Date().toISOString(),
@@ -108,6 +148,7 @@ export async function buildJson(book: ProjectBook): Promise<string> {
 }
 
 export function buildTxt(book: ProjectBook): string {
+  book = sanitizeBook(book)
   const lines: string[] = []
   lines.push(book.project.name)
   lines.push("=".repeat(book.project.name.length))
@@ -142,6 +183,7 @@ export function buildTxt(book: ProjectBook): string {
 }
 
 export function buildHtml(book: ProjectBook): string {
+  book = sanitizeBook(book)
   const parts: string[] = []
   parts.push("<!DOCTYPE html>")
   parts.push(`<html lang="en">`)
@@ -187,6 +229,7 @@ export function buildHtml(book: ProjectBook): string {
 }
 
 export async function buildDocx(book: ProjectBook): Promise<Blob> {
+  book = sanitizeBook(book)
   const children: Paragraph[] = []
   children.push(
     new Paragraph({
@@ -319,6 +362,7 @@ function zipStore(files: { name: string; data: Uint8Array }[]): Uint8Array {
 }
 
 export function buildEpub(book: ProjectBook): Blob {
+  book = sanitizeBook(book)
   const chapters = book.chapters.map((c) => ({ ...c, scenes: sceneListForChapter(book, c.id) }))
   const epubChapters: { title: string; content: string }[] = []
 

@@ -139,12 +139,23 @@ GitHub Pages / Electron (same static bundle)
 | QA | Computed-style verification in real browser (light + dark): tokens landed, `bg-amber-500` → `rgb(99,102,241)` indigo, serif applied, editor 1.85; tsc + eslint clean |
 | Docs | `DESIGN.md`, `docs/design/design-research.md`, `docs/release/design-verification.md` |
 
+## Phase 9 (hardening + adversarial QA) — verified
+
+| Item | Evidence |
+| ---- | ---- |
+| Security | No secrets in repo/bundle/history; `.env.production` holds only the public client id; machine-path doc removed; `next-intl` (unused, 2 advisories) removed; token scan clean; import sanitizer added; SSRF: fetch shim is same-origin only (Phase 7 fix, regression-tested) |
+| Performance | Re-benchmarked at 100k/250k: snapshot build ≤101 ms, incremental sync 5–14 ms with 0–1 new chunks, compression 92–97%; tiny-AI all <10 ms (see `performance-report.md` supplement) |
+| Accessibility | All icon-only buttons labeled (rail, top bar, goals, relationships, flow widget); `prefers-reduced-motion` global guard added (WCAG 2.3.3); dialogs/focus/semantics audited |
+| Recovery | **21/21 checks** (`scripts/test-recovery.ts`); fixed real silent-failure: exports crashed on corrupt project data → `sanitizeBook()` defense-in-depth; verified missing-chunk / checksum / tampered-backup / failed-write paths |
+| Docs | `security-report.md`, `accessibility-report.md`, `recovery-report.md`, `performance-report.md` (supplemented) |
+
 ## MISSING / open gaps (non-blocking)
 
-- Mobile/tablet responsive audit; accessibility (screen-reader) audit
+- Mobile/tablet responsive audit; automated axe/pa11y + screen-reader audit (Phase 9 a11y was code + live-DOM inspection)
 - Import preview dialog
 - PWA installation-prompt drive test (manifest/SW criteria verified; prompt not exercised in this environment)
 - Windows executables unsigned (SmartScreen warning expected; no cert in this environment)
+- `.github/workflows/windows.yml` written + locally validated but not pushed (token lacks `workflow` scope)
 
 ## Cleanup items (from audit)
 
