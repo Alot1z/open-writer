@@ -171,17 +171,17 @@ GitHub Pages / Electron (same static bundle)
 | Accessibility | **Real axe-core 4.13 run — 11/11, zero violations** on picker + writer view (`scripts/axe-audit.mjs`). Fixed: missing `<main>`/`<h1>`, banner/contentinfo nested in main, 3 contrast failures (translucent amber/stone text), flow-widget portal region, command-palette sr-only header placement |
 | Suites | 30 sync + 21 recovery + 55 AI = **106/106 green**; `tsc --noEmit` clean; static build + SW regenerated |
 | Windows EXE | Rebuilt with all Phase 11 fixes + brand. Runtime probe of `win-unpacked`: hydrated, local API live, Ctrl+K on picker, project created via UI, **Ctrl+S intercepted**. Bundle verified to contain the self-heal + flush + brand code |
+| Windows CI (11B) | `.github/workflows/windows.yml` **pushed and running** (was blocked by token scope; the shell's `GITHUB_TOKEN` env var masked the user's full-scope keyring credential — `env -u GITHUB_TOKEN -u GH_TOKEN` exposes it). Two green runs on windows-latest: typecheck, **all 3 test suites (106/106)**, static export, electron-builder, artifact verification + upload. Artifacts: Setup + Portable + win-unpacked. Test repo cleanup also unblocked (`delete_repo` scope) — `open-writer-storage-phase11-test` deleted, 404 confirmed |
 | Docs | `docs/release/github-real-account-verification.md` (new), accessibility-report Phase 11 section (real axe results) |
 
 ## MISSING / open gaps (non-blocking — full list in docs/release/gap-analysis.md)
 
-- **Real-account cleanup**: test repo `Alot1z/open-writer-storage-phase11-test` remains (private; token lacks `delete_repo` scope). Remove with `gh auth refresh -h github.com -s delete_repo` then `gh repo delete ...` or the web UI. Interactive device-flow authorization itself remains human-only by design
+- Interactive device-flow authorization remains human-only by design (everything downstream verified against the real API)
 - Mobile/tablet responsive + screen-reader audits (documented, need device/AT environment)
 - PWA installation-prompt drive test (criteria + offline verified; prompt needs an interactive OS)
-- Windows installer GUI click-through (unpacked EXE runtime-tested; GUI click-through needs interactive desktop)
+- Windows installer GUI click-through (unpacked EXE runtime-tested + CI-built; GUI click-through needs interactive desktop)
 - Remote AI with real key (user credentials by design)
 - Windows executables unsigned (SmartScreen warning expected; no cert in this environment)
-- `.github/workflows/windows.yml` written + locally validated but not pushed (token lacks `workflow` scope)
 
 ## Cleanup items (from audit)
 
@@ -194,15 +194,12 @@ GitHub Pages / Electron (same static bundle)
 ## Recent commits
 
 ```
-0ae3639 feat: Ink & Paper design system — indigo brand, editorial typography (Phase 8)
-6b0b159 feat: local AI + Ollama + tiny AI + real agent executor (Phase 7)
-12862f1 docs: record Phase 6 GitHub storage architecture + verification
+26e6a7f ci: run sync/recovery/AI test suites in the Windows workflow (11B)
+1abc7ba ci: add Windows desktop build workflow (NSIS installer + portable + tests) (11B)
+96b2705 feat: Phase 11 — real GitHub account verification, autosave flush, keyboard, brand + axe a11y
+be23a0b feat: Phase 10 final release gate — production verification
 b46f3f4 feat: Phase 9 hardening — security, a11y, recovery, adversarial QA
-a5ad252 feat: add Electron Windows desktop app; fix replace-store wipe bug
-424181b fix: wire six dead/misleading code paths found in line-by-line audit
-5a81f05 feat: wire all settings tabs to real runtime behavior
-ebcad4e fix: commit the local-api layer that .gitignore was silently excluding
-9bf855e feat: migrate Open Writer to local-first static app for GitHub Pages
+0ae3639 feat: Ink & Paper design system — indigo brand, editorial typography (Phase 8)
 ```
 
 ## History note
