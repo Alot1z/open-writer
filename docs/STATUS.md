@@ -95,6 +95,21 @@ GitHub Pages / Electron (same static bundle)
 | Offline | Local server from bundled out/ — no network for core writing |
 | Reports | `docs/release/feature-parity.md`, `docs/release/windows-verification.md` |
 
+## Phase 6 (private GitHub storage) — verified
+
+| Item | Evidence |
+| ---- | ---- |
+| GitHub App (device flow) | `open-writer-storage` (App ID 4612293) registered, Device Flow enabled; `POST github.com/login/device/code` → HTTP 200 with real device code; client id baked into the live deployed chunk (byte-identical to local build) |
+| Zero-config UX | Settings → Storage → Connect GitHub → authorize → Synced; no PAT, no repo setup, no Git terms in default UI (Advanced diagnostics only) |
+| Automatic private repo | Marker-protected (`open-writer-storage-v1`), create-or-discover, never attaches to unrelated repos |
+| Sync engine | Debounce → compress → content-addressed 48 KB chunks → dedup → upload → verify; background, never blocks the editor |
+| User states | All spec states: Local only · Syncing… · Synced · Offline · Sync paused · Needs attention · Conflict · Storage full · Unavailable — each with plain-language what/means/doing/can-do |
+| Conflicts | Keep this version / Keep other / Save both — nothing deleted until the user chooses; verified all 3 resolutions |
+| Recovery | Missing chunk, checksum mismatch, interrupted upload, offline, corrupt store — all handled without touching local data |
+| E2E suite | `bun scripts/test-sync.ts` → **30 passed, 0 failed** (device flow, repo creation, dedup, delta, cross-device, conflicts, encryption, offline, disconnect) |
+| Web + Windows | Same engine over the shared DataProvider; Electron on stable origin (port persistence from Phase 5) |
+| Docs | `docs/architecture/github-storage.md`, `docs/release/github-storage-verification.md`, `docs/sync-github.md` (App registration record) |
+
 ## MISSING / open gaps (non-blocking)
 
 - Mobile/tablet responsive audit; accessibility (screen-reader) audit
