@@ -5,7 +5,14 @@ import type { AgentAction, AgentSuggestion, PermissionLevel } from "@/lib/ai/pro
 import { PERMISSION_LABELS, PERMISSION_DESCRIPTIONS } from "@/lib/ai/provider"
 import { loadAISettings, loadPrivacySettings } from "@/lib/settings"
 
-export type AIProviderType = "zai" | "none"
+export type AIProviderType = "none" | "zai" | "ollama" | "custom"
+
+export const PROVIDER_DISPLAY: Record<AIProviderType, string> = {
+  none: "None",
+  zai: "Z.ai",
+  ollama: "Ollama (Local)",
+  custom: "Custom",
+}
 
 interface UseAIAssistantReturn {
   providerType: AIProviderType
@@ -56,7 +63,9 @@ export function useAIAssistant(): UseAIAssistantReturn {
   // Privacy → local-only mode forces the AI off entirely
   const aiBlocked = initialPrivacy.localOnlyMode && initialAI.provider !== "none" && initialAI.provider !== "ollama"
   const [providerType, setProviderTypeState] = useState<AIProviderType>(() =>
-    aiBlocked || initialAI.provider === "none" ? "none" : "zai"
+    aiBlocked || initialAI.provider === "none"
+      ? "none"
+      : (initialAI.provider as AIProviderType)
   )
   const [permission, setPermission] = useState<PermissionLevel>(() =>
     (initialAI.permissionLevel as PermissionLevel) || "suggest"

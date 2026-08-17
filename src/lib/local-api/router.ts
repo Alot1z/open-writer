@@ -15,8 +15,20 @@ import * as s from "./services"
 import { ApiError } from "./services"
 import * as exports from "./exports"
 import * as imports from "./imports"
-import { chatWithAI } from "./ai"
+import { chatWithAI, detectAI, streamChat, isAIConfigured } from "./ai"
 import { runContinuityCheck, buildStoryIndex } from "./continuity"
+import { runAgentTask } from "@/lib/ai/agent"
+import type { PermissionLevel } from "@/lib/ai/provider"
+import { buildAgentTools } from "@/lib/ai/agent-tools"
+import {
+  classifyScene,
+  continuityCheck,
+  extractMetadata,
+  findDuplicates,
+  proofread,
+  suggestTags,
+  summarize,
+} from "@/lib/ai/tiny-ai"
 
 const json = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), {
@@ -323,6 +335,59 @@ const routes: { pattern: string; handler: Handler }[] = [
           return error(`AI unavailable: ${aiError instanceof Error ? aiError.message : "Unknown error"}`, 503)
         }
       }
+      if (action === "run") {
+        const pid = String(projectId ?? "")
+        const g = String(goal ?? "")
+        if (!pid || !g) return error("projectId and goal are required for the run action", 400)
+        const perm = String(permission ?? "suggest")
+        const task = await s.createAgentTask({ projectId: pid, goal: g, permission: perm })
+        const tools = buildAgentTools(
+          {
+            listChapters: async (p) => (await s.listChapters(p)) as Array<{ id: string; title: string; scenes?: Array<{ id: string; title: string; content?: string; status?: string }> }>,
+            listCharacters: (p) => s.listCharacters(p) as Promise<Array<{ id: string; name: string; role?: string }>>,
+            listLocations: (p) => s.listLocations(p) as Promise<Array<{ id: string; name: string; type?: string }>>,
+            listTimelineEvents: (p) => s.listTimelineEvents(p) as Promise<Array<{ id: string; title: string; date?: string; description?: string }>>,
+            listNotes: (p) => s.listNotes(p) as Promise<Array<{ id: string; title: string; content?: string; resolved?: boolean }>>,
+            listVersions: (p) => s.listVersions(p) as Promise<Array<{ id: string; label?: string; createdAt?: string }>>,
+            listBackups: (p) => s.listBackups(p) as Promise<Array<{ id: string; createdAt?: string; checksum?: string }>>,
+            listComments: (params) => s.listComments(params) as Promise<Array<{ id: string; text?: string; resolved?: boolean }>>,
+            search: (p, q) => s.searchProject(p, q),
+            health: (p) => runContinuityCheck(p),
+            continuity: (p) => runContinuityCheck(p),
+          },
+          pid
+        )
+        const compose = async (observations: string[], goalText: string): Promise<string> => {
+          if (!isAIConfigured()) return ""
+          return chatWithAI([
+            {
+              role: "system",
+              content:
+                "You are Open Writer's research agent. Compose a concise, well-structured report for the writer from the tool observations below. Use headings and bullet points. Only claim what the observations support.",
+            },
+            { role: "user", content: `Goal: ${goalText}\n\nObservations:\n${observations.join("\n\n")}` },
+          ])
+        }
+        const result = await runAgentTask({
+          projectId: pid,
+          goal: g,
+          permission: perm as PermissionLevel,
+          tools,
+          compose,
+        })
+        await s.updateAgentTask(task.id, {
+          status: result.status,
+          plan: JSON.stringify(result.plan),
+          currentStep: result.currentStep,
+          toolCalls: JSON.stringify(result.toolCalls),
+          observations: JSON.stringify(result.observations),
+          errors: JSON.stringify(result.errors),
+          artifacts: JSON.stringify(result.artifacts),
+          result: result.result,
+        })
+        const finalTask = await s.getAgentTask(task.id)
+        return json(finalTask ?? { id: task.id, status: result.status }, 201)
+      }
       return json(await s.createAgentTask({ projectId, goal, permission }), 201)
     } },
 
@@ -358,6 +423,76 @@ const routes: { pattern: string; handler: Handler }[] = [
         return json({ content: response })
       } catch (aiError) {
         return error(aiError instanceof Error ? aiError.message : "AI chat failed", 500)
+      }
+    } },
+
+  // AI detection + model discovery + streaming
+  { pattern: "GET /api/ai/detect", handler: async (ctx) =>
+      json(await detectAI(String(ctx.params.get("baseUrl") ?? ""))) },
+  { pattern: "GET /api/ai/models", handler: async (ctx) => {
+      const d = await detectAI(String(ctx.params.get("baseUrl") ?? ""))
+      return json({ detected: d.detected, models: d.models })
+    } },
+  { pattern: "POST /api/ai/stream", handler: async (ctx) => {
+      const { messages, systemPrompt, temperature, model } = ctx.body
+      if (!messages || !Array.isArray(messages)) {
+        return error("messages array is required", 400)
+      }
+      try {
+        const content = await streamChat(messages, {
+          systemPrompt: systemPrompt ? String(systemPrompt) : undefined,
+          temperature: typeof temperature === "number" ? temperature : undefined,
+          model: model ? String(model) : undefined,
+        })
+        return json({ content })
+      } catch (aiError) {
+        return error(aiError instanceof Error ? aiError.message : "AI stream failed", 500)
+      }
+    } },
+
+  // Tiny AI (deterministic, model-free analysis over the current project)
+  { pattern: "POST /api/ai/tiny/analyze", handler: async (ctx) => {
+      const { projectId, kind } = ctx.body
+      if (!projectId) return error("projectId is required", 400)
+      try {
+        const chapters = (await s.listChapters(String(projectId))) as Array<{
+          title: string
+          scenes?: Array<{ id: string; title: string; content?: string }>
+        }>
+        const scenes = chapters.flatMap((c) =>
+          (c.scenes ?? []).map((sc) => ({
+            id: sc.id,
+            title: sc.title,
+            text: s.stripHtml(sc.content ?? ""),
+          }))
+        )
+        const text = scenes.map((sc) => sc.text).join("\n\n")
+        const cast = (await s.listCharacters(String(projectId))) as Array<{ id: string; name: string }>
+        const locs = (await s.listLocations(String(projectId))) as Array<{ id: string; name: string }>
+        const kindStr = String(kind ?? "tags")
+        switch (kindStr) {
+          case "proofread":
+            return json({ issues: proofread(text) })
+          case "tags":
+            return json({ tags: suggestTags(text), metadata: extractMetadata(text, cast.map((c) => c.name)) })
+          case "classify":
+            return json({
+              scenes: scenes.map((sc) => ({ id: sc.id, title: sc.title, ...classifyScene(sc.text) })),
+            })
+          case "continuity":
+            return json({ issues: continuityCheck({ scenes, characters: cast, locations: locs }) })
+          case "summary":
+            return json({ summary: summarize(text, 5) })
+          case "duplicates":
+            return json({
+              characterDuplicates: findDuplicates(cast.map((c) => c.name)),
+              locationDuplicates: findDuplicates(locs.map((l) => l.name)),
+            })
+          default:
+            return error(`Unknown tiny analysis kind: ${kindStr}`, 400)
+        }
+      } catch (tinyError) {
+        return error(tinyError instanceof Error ? tinyError.message : "Tiny AI analysis failed", 500)
       }
     } },
 
@@ -555,16 +690,24 @@ export function installLocalApi(): void {
       url = input.url
     }
 
-    // Normalize: strip origin and optional basePath so "/open-writer/api/..."
-    // and "/api/..." both reach the router.
-    let path = url
+    // Absolute URL to a DIFFERENT origin → never intercept. External AI
+    // endpoints (Ollama /api/tags, Z.ai /api/v1, GitHub API) must reach the
+    // network, not the local router.
     try {
-      if (/^https?:\/\//.test(path)) {
-        path = new URL(path).pathname + new URL(path).search
+      if (/^https?:\/\//.test(url)) {
+        const parsed = new URL(url)
+        if (parsed.origin !== window.location.origin) {
+          return realFetch(input, init)
+        }
+        url = parsed.pathname + parsed.search
       }
     } catch {
       // keep as-is
     }
+
+    // Normalize: strip optional basePath so "/open-writer/api/..." and
+    // "/api/..." both reach the router.
+    let path = url
     if (path.startsWith("/open-writer/")) path = path.slice("/open-writer".length)
 
     if (!path.startsWith("/api/")) {

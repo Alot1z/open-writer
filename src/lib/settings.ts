@@ -40,6 +40,8 @@ export interface AISettings {
   apiKey: string
   contextScope: string
   permissionLevel: string
+  /** Free-form context used when contextScope === "custom". */
+  customContext: string
 }
 
 export interface PrivacySettings {
@@ -80,6 +82,7 @@ export const DEFAULT_AI: AISettings = {
   apiKey: "",
   contextScope: "current-scene",
   permissionLevel: "suggest",
+  customContext: "",
 }
 
 export const DEFAULT_PRIVACY: PrivacySettings = {

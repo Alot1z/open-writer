@@ -110,6 +110,22 @@ GitHub Pages / Electron (same static bundle)
 | Web + Windows | Same engine over the shared DataProvider; Electron on stable origin (port persistence from Phase 5) |
 | Docs | `docs/architecture/github-storage.md`, `docs/release/github-storage-verification.md`, `docs/sync-github.md` (App registration record) |
 
+## Phase 7 (Local AI + Ollama + Tiny AI + Agent) — verified
+
+| Item | Evidence |
+| ---- | ---- |
+| Providers | none / Z.ai / **Ollama (Local)** / custom (OpenAI-compatible — LM Studio, OpenAI, etc.) share one client; base URLs with or without `/v1` both resolve |
+| Ollama detection | `detectAI` probes `/api/tags` + `/v1/models` across candidate roots; Settings → AI → **Detect models** → "Local AI detected — Ollama · 2 models …" (verified live against a mock; regression test for `/v1`-suffixed base) |
+| Chat + streaming | `POST /api/ai/chat` and `/api/ai/stream` (SSE) verified end-to-end through the app's router |
+| Tiny AI (model-free) | `tiny-ai.ts`: classify, tags, metadata, entity match, duplicates, proofread, continuity, rerank, summarize — all deterministic; 6 tools live in the agent panel; `/api/ai/tiny/analyze` (200 for all 6 kinds) |
+| Agent executor | Real plan → tool-runner (13 deterministic tools over the user's data), permission gating (read-only/suggest block writes), retry, cancellation, artifacts, action log; UI run rendered Plan (4 steps) + Tool Calls (6) + Observations + agent-report + Result |
+| Cascade | deterministic → tiny AI → LLM compose; empty compose falls back to deterministic report (never blank) |
+| Context scopes | 7 scopes: current scene, current chapter, project summary, related entities, timeline, full project, custom (with custom-context textarea) |
+| Privacy | local-only mode blocks remote providers; keys browser-only; privacy bar shows "Data sent to Z.ai / your custom AI endpoint"; transmission info toggle |
+| Bugs fixed | fetch shim hijacked external `/api/*` URLs (broke Ollama detection + Z.ai chat) → same-origin only; detectAI `/v1` double-suffix; empty agent result when AI unconfigured; provider badge mislabeled "Z.ai" |
+| Tests | `bun scripts/test-ai.ts` → **55 passed, 0 failed**; sync suite re-run **30/30**; tsc + eslint clean |
+| Docs | `docs/architecture/ai.md`, `docs/release/ai-verification.md` |
+
 ## MISSING / open gaps (non-blocking)
 
 - Mobile/tablet responsive audit; accessibility (screen-reader) audit

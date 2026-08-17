@@ -38,6 +38,8 @@ import {
   Upload,
   Database,
   Cloud,
+  Loader2,
+  RefreshCw,
 } from "lucide-react"
 import { ExportPanel } from "./export-panel"
 import { ImportPanel } from "./import-panel"
@@ -77,6 +79,7 @@ interface AISettings {
   apiKey: string
   contextScope: string
   permissionLevel: string
+  customContext: string
 }
 
 interface PrivacySettings {
@@ -117,6 +120,7 @@ const DEFAULT_AI: AISettings = {
   apiKey: "",
   contextScope: "current-scene",
   permissionLevel: "suggest",
+  customContext: "",
 }
 
 const DEFAULT_PRIVACY: PrivacySettings = {
@@ -158,6 +162,8 @@ export function SettingsDialog() {
     useState<AppearanceSettings>(() => loadSettings("appearance", DEFAULT_APPEARANCE))
   const [ai, setAi] = useState<AISettings>(() => loadSettings("ai", DEFAULT_AI))
   const [privacy, setPrivacy] = useState<PrivacySettings>(() => loadSettings("privacy", DEFAULT_PRIVACY))
+  const [detectingModels, setDetectingModels] = useState(false)
+  const [detected, setDetected] = useState<{ detected: string; models: { id: string }[] } | null>(null)
 
   const handleSave = () => {
     saveSettings("editor", editor as unknown as Record<string, unknown>)
@@ -511,12 +517,61 @@ export function SettingsDialog() {
                 <>
                   <div className="space-y-2">
                     <Label className="text-xs">Model</Label>
-                    <Input
-                      value={ai.model}
-                      onChange={(e) => setAi({ ...ai, model: e.target.value })}
-                      placeholder="default"
-                      className="text-xs"
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        value={ai.model}
+                        onChange={(e) => setAi({ ...ai, model: e.target.value })}
+                        placeholder="default"
+                        className="text-xs"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-8 shrink-0 gap-1.5 text-xs"
+                        disabled={detectingModels}
+                        onClick={async () => {
+                          setDetectingModels(true)
+                          try {
+                            const res = await fetch(`/api/ai/detect?baseUrl=${encodeURIComponent(ai.baseUrl)}`)
+                            const data = await res.json()
+                            setDetected(data)
+                            if (data?.detected !== "none" && Array.isArray(data?.models) && data.models.length > 0) {
+                              setAi({ ...ai, model: data.models[0].id })
+                            }
+                          } catch {
+                            setDetected({ detected: "none", models: [] })
+                          } finally {
+                            setDetectingModels(false)
+                          }
+                        }}
+                      >
+                        {detectingModels ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        )}
+                        Detect models
+                      </Button>
+                    </div>
+                    {detected && detected.detected !== "none" && (
+                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                        {detected.detected === "ollama"
+                          ? "Local AI detected — Ollama"
+                          : "AI endpoint detected"}
+                        {Array.isArray(detected.models) && detected.models.length > 0
+                          ? ` · ${detected.models.length} model${detected.models.length === 1 ? "" : "s"} (${detected.models
+                              .slice(0, 4)
+                              .map((m: { id: string }) => m.id)
+                              .join(", ")}${detected.models.length > 4 ? "…" : ""})`
+                          : ""}
+                      </p>
+                    )}
+                    {detected && detected.detected === "none" && (
+                      <p className="text-[10px] text-muted-foreground">
+                        No AI endpoint detected at this address.
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -578,12 +633,43 @@ export function SettingsDialog() {
                         <SelectItem value="current-chapter">
                           Current Chapter
                         </SelectItem>
+                        <SelectItem value="project-summary">
+                          Project Summary
+                        </SelectItem>
+                        <SelectItem value="related-entities">
+                          Related Entities
+                        </SelectItem>
+                        <SelectItem value="timeline">
+                          Timeline
+                        </SelectItem>
                         <SelectItem value="full-project">
                           Full Project
                         </SelectItem>
+                        <SelectItem value="custom">
+                          Custom
+                        </SelectItem>
                       </SelectContent>
                     </Select>
+                    <p className="text-[10px] text-muted-foreground">
+                      What Open Writer includes in the prompt. Only the requested
+                      scope is ever sent.
+                    </p>
                   </div>
+
+                  {ai.contextScope === "custom" && (
+                    <div className="space-y-2">
+                      <Label className="text-xs">Custom Context</Label>
+                      <textarea
+                        value={ai.customContext}
+                        onChange={(e) =>
+                          setAi({ ...ai, customContext: e.target.value })
+                        }
+                        rows={4}
+                        placeholder="Anything you want the assistant to always know — world rules, tone, character intentions…"
+                        className="text-xs w-full rounded-md border border-writer-border bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                      />
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label className="text-xs">Permission Level</Label>
