@@ -139,6 +139,28 @@ path, setting `NEXT_PUBLIC_BASE_PATH` accordingly at build time.
 - [Contributing](./CONTRIBUTING.md)
 - [Security](./SECURITY.md)
 - [Changelog](./CHANGELOG.md)
+- [Design](./DESIGN.md) — the Ink & Paper design system
+- [Architecture](./docs/architecture/overview.md) — local-first architecture, ADRs
+- [GitHub storage](./docs/architecture/github-storage.md) — how private cloud sync works
+- [AI](./docs/architecture/ai.md) — providers, tiny AI, agent, privacy
+- [Release reports](./docs/release/) — web, Windows, offline, performance,
+  security, accessibility, recovery, design, GitHub-storage, gap analysis
+
+## Release verification (Phase 10 gate)
+
+- **Web**: live Pages URL (https://Alot1z.github.io/open-writer/) returns 200
+  with the byte-identical bundle; full runtime flow verified in a browser
+  (project → chapter → scene → write → reload → search → entities → timeline →
+  relationship → notes → comments → settings → version → backup → restore)
+- **PWA**: 11/11 offline checks (kill server → reload → data survives → write
+  offline → local API still works)
+- **Windows**: rebuilt EXE (NSIS + portable) runtime-verified via CDP —
+  create/write/close/reopen persistence confirmed
+- **Suites**: 55 AI + 30 sync + 21 recovery = 106 automated checks, all green;
+  `tsc --noEmit` and `eslint` clean
+
+See [docs/release/gap-analysis.md](./docs/release/gap-analysis.md) for the
+honest remaining-gap list.
 
 ## License
 

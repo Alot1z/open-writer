@@ -65,3 +65,27 @@ network either.)
   start_url/scope, SW with fetch handler, served over a secure context).
   Installation prompt behavior was not drive-tested in this environment; the
   manifest/SW criteria were verified directly.
+
+## Phase 10 supplement — true offline gate (11/11)
+
+Re-verified at the final release gate with the **static server actually killed**
+(`scripts/test-offline.mjs`, driving real Chrome over CDP):
+
+| # | Check | Result |
+|---|---|---|
+| 1 | Chrome launches the app | ✅ |
+| 2 | App shell renders (React hydrated) | ✅ |
+| 3 | Service worker registered + active | ✅ |
+| 4 | App shell precached (52 entries) | ✅ |
+| 5 | Create project while online | ✅ (201) |
+| 6 | Server killed (network dead) | ✅ |
+| 7 | Local API ready after offline reload | ✅ |
+| 8 | App shell renders offline from SW cache | ✅ |
+| 9 | Local API works with no network | ✅ |
+| 10 | Created project survived offline reload | ✅ |
+| 11 | Write while offline | ✅ (201) |
+
+This is the strongest offline evidence in the project: the server process was
+terminated mid-test and the app kept rendering, serving its shell from the
+service-worker cache, reading/writing IndexedDB, and preserving data across the
+reload.

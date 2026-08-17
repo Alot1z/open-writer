@@ -27,6 +27,11 @@ const MIME = {
 createServer(async (req, res) => {
   try {
     let pathname = decodeURIComponent(new URL(req.url, "http://x").pathname)
+    // The static export compiles the basePath into URLs (/open-writer/...) but
+    // the artifact layout is at the root (out/index.html, out/_next/...).
+    if (pathname === "/open-writer" || pathname.startsWith("/open-writer/")) {
+      pathname = pathname.slice("/open-writer".length) || "/"
+    }
     if (pathname.endsWith("/")) pathname += "index.html"
     let file = normalize(join(root, pathname))
     if (!file.startsWith(normalize(root))) {

@@ -8,7 +8,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "preview": "npx serve out",
-    "build:desktop": "bun run build && electron-builder --win",
+    "build:desktop": "NEXT_PUBLIC_BASE_PATH=/open-writer bun run build && electron-builder --win",
     "desktop:dev": "bun run build && electron .",
     "test:sync": "node scripts/mock-github.mjs 9801 & sleep 1 && bun scripts/test-sync.ts"
   },

@@ -149,11 +149,23 @@ GitHub Pages / Electron (same static bundle)
 | Recovery | **21/21 checks** (`scripts/test-recovery.ts`); fixed real silent-failure: exports crashed on corrupt project data → `sanitizeBook()` defense-in-depth; verified missing-chunk / checksum / tampered-backup / failed-write paths |
 | Docs | `security-report.md`, `accessibility-report.md`, `recovery-report.md`, `performance-report.md` (supplemented) |
 
-## MISSING / open gaps (non-blocking)
+## Phase 10 (final release gate) — verified
 
-- Mobile/tablet responsive audit; automated axe/pa11y + screen-reader audit (Phase 9 a11y was code + live-DOM inspection)
-- Import preview dialog
-- PWA installation-prompt drive test (manifest/SW criteria verified; prompt not exercised in this environment)
+| Item | Evidence |
+| ---- | ---- |
+| Web | Live https://Alot1z.github.io/open-writer/ = 200, deployed bundle byte-identical to the verified local build (same chunk hashes + SW). Full runtime flow in a real browser: project → chapter → scene → write → reload (persisted) → search (1 hit) → character → timeline → relationship → notes → comments → version → backup (checksummed) → restore (400 without confirm, 200 with, data intact) |
+| PWA | 11/11 offline checks via CDP Chrome: SW registered + 52-entry precache → **server killed** → reload → shell renders from cache → local API works → project survived → offline write succeeds |
+| Windows | Rebuilt EXE (NSIS + portable) with the self-heal fix. **Found + fixed a real bug**: `build:desktop` ran without `NEXT_PUBLIC_BASE_PATH`, so the packaged EXE 404'd its own assets and never hydrated. Now `build:desktop` sets it. Runtime-probed the rebuilt EXE: project + chapter created (201), close → reopen → data survived (3 projects listed), `platform: Win32`, bridge present |
+| Data safety | **Found + fixed**: IndexedDB at the current version missing stores never self-healed (500s forever). `openDB` now verifies stores and bumps the schema version to repair; `DB_VERSION` bumped to 2. Verified: corrupt DB → app auto-repairs → 200 |
+| Suites | 55 AI + 30 sync + 21 recovery = **106/106 green**; `tsc --noEmit` + `eslint` clean; static build + SW regenerated |
+| Docs | `feature-parity.md` (full per-feature matrix), `gap-analysis.md` (final honest list), CHANGELOG 1.0.0, PROJECT-PLAN phases 5–9, README release-verification section, requirements gap table, SECURITY URL fix |
+
+## MISSING / open gaps (non-blocking — full list in docs/release/gap-analysis.md)
+
+- Mobile/tablet responsive + screen-reader audits (documented, need device/AT environment)
+- PWA installation-prompt drive test (criteria + offline verified; prompt needs an interactive OS)
+- Windows installer GUI click-through (unpacked EXE runtime-tested; GUI click-through needs interactive desktop)
+- Real-account GitHub round-trip + remote AI with real key (user credentials by design)
 - Windows executables unsigned (SmartScreen warning expected; no cert in this environment)
 - `.github/workflows/windows.yml` written + locally validated but not pushed (token lacks `workflow` scope)
 
@@ -168,11 +180,10 @@ GitHub Pages / Electron (same static bundle)
 ## Recent commits
 
 ```
-314e5bb build: commit NEXT_PUBLIC_SYNC_CLIENT_ID so CI ships one-click Connect
-2a61297 feat: register the Open Writer GitHub App — one-click Connect GitHub
-b80b930 docs: record tray indicator work in worklog
-49d152c feat: native tray indicator + Sync now / Open storage menu (Electron)
-0731125 feat: private GitHub storage — zero-config cloud sync for projects
+0ae3639 feat: Ink & Paper design system — indigo brand, editorial typography (Phase 8)
+6b0b159 feat: local AI + Ollama + tiny AI + real agent executor (Phase 7)
+12862f1 docs: record Phase 6 GitHub storage architecture + verification
+b46f3f4 feat: Phase 9 hardening — security, a11y, recovery, adversarial QA
 a5ad252 feat: add Electron Windows desktop app; fix replace-store wipe bug
 424181b fix: wire six dead/misleading code paths found in line-by-line audit
 5a81f05 feat: wire all settings tabs to real runtime behavior
