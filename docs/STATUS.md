@@ -65,12 +65,30 @@ GitHub Pages / Electron (same static bundle)
 | Relationship types | All 10 spec types in the panel's type select |
 | Router field whitelist bug (Phase 2) | `COLLECTION_FIELDS` dropped `knowledge`/`appearances`/`ownership` on PUT — fixed and re-verified |
 
+## Phase 3 (GitHub Pages) — verified live
+
+- Live site `https://Alot1z.github.io/open-writer/` HTTP 200; client-id chunk byte-identical to local build (SHA-256 match)
+- Fresh-browser session: create project → chapter → scene → write → autosave → reload → prose restored
+- Export Markdown, 6 formats, backup (checksum), search, auto-versions, all 11 settings tabs — all pass on the static build
+- Report: `docs/release/web-verification.md`
+
+## Phase 4 (PWA + offline + performance) — verified
+
+| Item | Evidence |
+| ---- | ---- |
+| PWA manifest + icons | `manifest.webmanifest` + 192/512 regular & maskable PNGs + apple-touch-icon; linked with correct basePath |
+| Service worker | Build-generated precache (51 entries) of every artifact; scope-relative; build-stamped cache invalidation |
+| SW install | Active, controls the page, precache complete (0 missing of 17 index-referenced resources) |
+| Offline (server killed) | Launch, create chapter/scene, write, save, search, auto-version, checksummed backup — all pass with zero network; data survives offline reloads and network restore |
+| 100k / 250k+ words | 100,541 then 351,561 words: save 5–23 ms, search 11–32 ms, story-index 30–93 ms, exports 19–480 ms, backup 43–133 ms, heap 26–35 MB; cold load 202 ms DOM / 440 ms load |
+| Performance engineering | None required — all ops within budget at 3.5× target; heaviest op (DOCX export) 480 ms |
+| Reports | `docs/release/offline-verification.md`, `docs/release/performance-report.md` |
+
 ## MISSING / open gaps (non-blocking)
 
-- PWA manifest + service worker (app is already offline-capable)
 - Mobile/tablet responsive audit; accessibility (screen-reader) audit
 - Import preview dialog
-- Large-project performance benchmark
+- PWA installation-prompt drive test (manifest/SW criteria verified; prompt not exercised in this environment)
 
 ## Cleanup items (from audit)
 
