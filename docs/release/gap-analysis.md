@@ -1,8 +1,8 @@
-# Gap Analysis — Final (Phase 10)
+# Gap Analysis — Final (Phase 11B)
 
 **Project:** Open Writer
 **Date:** 2026-08-17
-**Status:** FINAL RELEASE GATE
+**Status:** FINAL RELEASE GATE — WINDOWS_CI_VERIFIED
 
 This is the honest end-state. "Verified" means evidence exists (headless checks,
 browser probes, packaged-EXE runtime tests, live URL checks) — not that a build
@@ -48,7 +48,7 @@ passed. Gaps are listed without hiding.
 
 | # | Note |
 |---|---|
-| 1 | Default autosave debounce is 30 s (configurable in Settings → Writing); closing within the window loses up to 30 s of typing. A 5 s default is a one-line product change if desired |
+| 1 | Default autosave debounce remains 30 s (configurable in Settings → Writing), but pending content is now flushed on scene switch, unmount, `pagehide`, `visibilitychange(hidden)`, and Ctrl/Cmd+S; no known close-within-window data-loss path remains |
 | 2 | Windows EXE is unsigned |
 | 3 | The GitHub storage repo is one private repo per account (many projects inside), chosen for simplicity + API efficiency — documented in `docs/architecture/github-storage.md` |
 
@@ -61,7 +61,7 @@ reduced-motion missing (P9) · desktop build missing basePath (P10).
 
 ## 7. Verdict
 
-No **blocking** defects remain for the release criteria: the GitHub Pages site is
+No **blocking** defects remain for the release criteria: `WINDOWS_CI_VERIFIED` is evidenced by green GitHub Actions run `32033897096` with 106/106 tests and three downloadable artifacts. The GitHub Pages site is
 the real app (verified live, byte-identical bundle, full offline), the Windows
 EXE is the real app (verified runtime + persistence), GitHub storage is
 one-click and private, AI is optional with a deterministic fallback, and the
