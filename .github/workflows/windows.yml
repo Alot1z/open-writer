@@ -25,6 +25,16 @@ jobs:
       - name: Type check
         run: bunx tsc --noEmit
 
+      - name: Run test suites (sync + recovery + AI)
+        shell: bash
+        run: |
+          node scripts/mock-github.mjs 9801 > /tmp/mock-sync.log 2>&1 &
+          node scripts/mock-openai.mjs 9911 > /tmp/mock-ai.log 2>&1 &
+          sleep 2
+          bun scripts/test-recovery.ts | tail -2
+          bun scripts/test-sync.ts | tail -2
+          bun scripts/test-ai.ts | tail -2
+
       - name: Build static export (shared web bundle)
         run: bun run build
         env:
