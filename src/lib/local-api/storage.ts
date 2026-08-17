@@ -8,7 +8,7 @@
  */
 
 export const DB_NAME = "open-writer"
-export const DB_VERSION = 1
+export const DB_VERSION = 2
 
 export const STORES = [
   "projects",
@@ -48,7 +48,31 @@ function openDB(): Promise<IDBDatabase> {
         }
       }
     }
-    request.onsuccess = () => resolve(request.result)
+    request.onsuccess = () => {
+      const db = request.result
+      // Self-heal: a database at the current version can still be missing
+      // stores (partial migration, interrupted upgrade, tampered profile).
+      // onupgradeneeded does not fire at the same version, so force a version
+      // bump to recreate them — never leave the app 500ing on every request.
+      const missing = STORES.filter((s) => !db.objectStoreNames.contains(s))
+      if (missing.length > 0) {
+        db.close()
+        const bumped = indexedDB.open(DB_NAME, db.version + 1)
+        bumped.onupgradeneeded = () => {
+          const bdb = bumped.result
+          for (const store of STORES) {
+            if (!bdb.objectStoreNames.contains(store)) {
+              bdb.createObjectStore(store, { keyPath: "id" })
+            }
+          }
+        }
+        bumped.onsuccess = () => resolve(bumped.result)
+        bumped.onerror = () =>
+          reject(bumped.error ?? new Error("Failed to repair IndexedDB schema"))
+        return
+      }
+      resolve(db)
+    }
     request.onerror = () => reject(request.error ?? new Error("Failed to open IndexedDB"))
   })
   return dbPromise

@@ -90,13 +90,14 @@ implementation or an explicit open gap.
 - R10.4 CI runs on push and PR; Pages deploys the true artifact. ✅
 - R10.5 Sync engine covered by an automated suite. ✅ 30/30.
 
-## Open gaps (non-blocking)
+## Open gaps (non-blocking — see docs/release/gap-analysis.md for the full list)
 
 | Gap | Requirement impact |
 | --- | ------------------ |
-| PWA manifest + service worker | R1.2 installability, not core functionality |
+| PWA install-prompt drive test | R1.2 installability; manifest/SW/offline already verified (11/11) |
 | Mobile/tablet responsive audit | R4/R5 on small screens |
-| Accessibility audit | keyboard paths exist; screen-reader review pending |
+| Screen-reader audit (axe/pa11y CI) | accessibility beyond code inspection |
 | Import preview dialog | UX nicety |
-| Live AI verification | requires user credentials |
-| Real GitHub cross-device round-trip | requires user authorization |
+| Live AI verification with a real remote key | requires user credentials |
+| Real GitHub cross-device round-trip | requires user authorization (one-time) |
+| Windows installer GUI click-through | requires interactive desktop session |

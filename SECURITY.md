@@ -11,7 +11,7 @@ If you discover a security vulnerability in Open Writer, please report it respon
 Instead, report vulnerabilities by:
 
 1. **Email**: Send a detailed report to the project maintainers via GitHub's security advisory feature
-2. **GitHub Security Advisory**: Use the [Security Advisories](https://github.com/open-writer/open-writer/security/advisories) page to privately report a vulnerability
+2. **GitHub Security Advisory**: Use the [Security Advisories](https://github.com/Alot1z/open-writer/security/advisories) page to privately report a vulnerability
 
 Please include the following in your report:
 
