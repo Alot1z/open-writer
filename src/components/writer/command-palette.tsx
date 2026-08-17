@@ -243,6 +243,12 @@ export function CommandPalette() {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault()
         store.setCommandPaletteOpen(!store.isCommandPaletteOpen)
+      } else if (e.key === "," && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        store.setSettingsOpen(true)
+      } else if (e.key === "\\" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        store.setFocusMode(!store.isFocusMode)
       }
     }
     document.addEventListener("keydown", down)

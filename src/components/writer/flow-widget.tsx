@@ -109,7 +109,11 @@ export function FlowWidget() {
   if (isFocusMode) return null
 
   return (
-    <div className="fixed bottom-4 right-4 z-40">
+    <div
+      className="fixed bottom-4 right-4 z-40"
+      role="region"
+      aria-label="Writing flow"
+    >
       <AnimatePresence>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -157,13 +161,13 @@ export function FlowWidget() {
               <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-1">
                   <Flame className="h-3 w-3 text-orange-500" />
-                  <span className="text-[10px] text-stone-500">
+                  <span className="text-[10px] text-stone-600 dark:text-stone-400">
                     {streak} day{streak !== 1 ? 's' : ''} streak
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <PenLine className="h-3 w-3 text-stone-400" />
-                  <span className="text-[10px] text-stone-500">
+                  <span className="text-[10px] text-stone-600 dark:text-stone-400">
                     {editorWordCount} words
                   </span>
                 </div>

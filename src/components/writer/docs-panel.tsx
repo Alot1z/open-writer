@@ -580,7 +580,7 @@ function ShortcutsPage() {
                   <div className="flex items-center gap-0.5">
                     {key.split(' + ').map((part, i) => (
                       <span key={i} className="flex items-center gap-0.5">
-                        {i > 0 && <span className="text-stone-400 dark:text-stone-500 text-[10px]">+</span>}
+                        {i > 0 && <span className="text-stone-500 dark:text-stone-400 text-[10px]">+</span>}
                         <kbd className="inline-flex items-center rounded border border-stone-300 dark:border-stone-600 bg-stone-100 dark:bg-stone-800 px-1.5 py-0.5 text-[10px] font-mono text-stone-700 dark:text-stone-300">
                           {part}
                         </kbd>

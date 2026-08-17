@@ -103,15 +103,17 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
             autoFocus
           />
         ) : (
-          <button
-            onDoubleClick={() => {
-              setNameValue(currentProjectName)
-              setIsEditingName(true)
-            }}
-            className="text-sm font-semibold truncate hover:text-writer-accent transition-colors cursor-default font-display tracking-tight"
-          >
-            {currentProjectName || 'Untitled'}
-          </button>
+          <h1 className="min-w-0">
+            <button
+              onDoubleClick={() => {
+                setNameValue(currentProjectName)
+                setIsEditingName(true)
+              }}
+              className="text-sm font-semibold truncate hover:text-writer-accent transition-colors cursor-default font-display tracking-tight"
+            >
+              {currentProjectName || 'Untitled'}
+            </button>
+          </h1>
         )}
       </div>
 
@@ -136,7 +138,7 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
         <span className="text-xs font-bold text-amber-700 dark:text-amber-400 tabular-nums">
           {editorWordCount.toLocaleString()}
         </span>
-        <span className="text-[10px] text-amber-600/70 dark:text-amber-400/70">words</span>
+        <span className="text-[10px] text-amber-700 dark:text-amber-400">words</span>
       </div>
 
       {totalWordCount > 0 && (

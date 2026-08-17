@@ -160,12 +160,26 @@ GitHub Pages / Electron (same static bundle)
 | Suites | 55 AI + 30 sync + 21 recovery = **106/106 green**; `tsc --noEmit` + `eslint` clean; static build + SW regenerated |
 | Docs | `feature-parity.md` (full per-feature matrix), `gap-analysis.md` (final honest list), CHANGELOG 1.0.0, PROJECT-PLAN phases 5–9, README release-verification section, requirements gap table, SECURITY URL fix |
 
+## Phase 11 (final gap closure + real-world verification) — verified
+
+| Item | Evidence |
+| ---- | ---- |
+| Real GitHub account E2E | Live against api.github.com with a real credential, driving the real engine: connect → **private repo created on GitHub** → meta + snapshot v1 + chunks + index → edit → v2 (new chunk, dedup) → device B restore (content byte-verified) → independent edits → **conflict detected** → keep-remote → B holds A's latest rewrite → history restore (v1 integrity). **25/26**; only "failure" is repo deletion — token lacks `delete_repo` scope (credential limit; see below). **Found + fixed a real bug**: keep-remote pulled the stale version; engine now records the new remote version on conflict |
+| Autosave | **Found + fixed a silent-data-loss path**: autosave debounced 30s with no flush, so typing then closing lost content. Now flushes on scene switch, unmount, `pagehide` and `visibilitychange(hidden)`; Ctrl/Cmd+S saves immediately (no browser dialog). Verified in browser + EXE |
+| Keyboard | **Found + fixed**: Ctrl+, Ctrl+\ were documented but never wired (only Ctrl+K / Ctrl+Shift+F); and global shortcuts + Settings were **absent on the project picker screen**. All wired; `scripts/test-keyboard.mjs` = **7/7 live**: Ctrl+K, Ctrl+Shift+F, Ctrl+,, Ctrl+\, Ctrl+S, editor surface |
+| Logo / brand | Amber → indigo everywhere: PWA icons (192/512/maskable/apple), `manifest.webmanifest` theme `#4f46e5`, `logo.svg` (pen mark), Electron `icon.ico` (7 sizes, regenerated), tray icon (indigo quill). `generate-icons.mjs` rewritten for the brand |
+| Accessibility | **Real axe-core 4.13 run — 11/11, zero violations** on picker + writer view (`scripts/axe-audit.mjs`). Fixed: missing `<main>`/`<h1>`, banner/contentinfo nested in main, 3 contrast failures (translucent amber/stone text), flow-widget portal region, command-palette sr-only header placement |
+| Suites | 30 sync + 21 recovery + 55 AI = **106/106 green**; `tsc --noEmit` clean; static build + SW regenerated |
+| Windows EXE | Rebuilt with all Phase 11 fixes + brand. Runtime probe of `win-unpacked`: hydrated, local API live, Ctrl+K on picker, project created via UI, **Ctrl+S intercepted**. Bundle verified to contain the self-heal + flush + brand code |
+| Docs | `docs/release/github-real-account-verification.md` (new), accessibility-report Phase 11 section (real axe results) |
+
 ## MISSING / open gaps (non-blocking — full list in docs/release/gap-analysis.md)
 
+- **Real-account cleanup**: test repo `Alot1z/open-writer-storage-phase11-test` remains (private; token lacks `delete_repo` scope). Remove with `gh auth refresh -h github.com -s delete_repo` then `gh repo delete ...` or the web UI. Interactive device-flow authorization itself remains human-only by design
 - Mobile/tablet responsive + screen-reader audits (documented, need device/AT environment)
 - PWA installation-prompt drive test (criteria + offline verified; prompt needs an interactive OS)
 - Windows installer GUI click-through (unpacked EXE runtime-tested; GUI click-through needs interactive desktop)
-- Real-account GitHub round-trip + remote AI with real key (user credentials by design)
+- Remote AI with real key (user credentials by design)
 - Windows executables unsigned (SmartScreen warning expected; no cert in this environment)
 - `.github/workflows/windows.yml` written + locally validated but not pushed (token lacks `workflow` scope)
 

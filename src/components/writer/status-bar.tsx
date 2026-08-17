@@ -110,7 +110,7 @@ export function StatusBar({ saveStatus = 'saved', totalWordCount = 0, className 
 
       {/* Mode indicators */}
       {/* Open Writer badge */}
-      <span className="text-amber-600/60 dark:text-amber-400/60 font-medium">OW</span>
+      <span className="text-amber-700 dark:text-amber-400 font-medium">OW</span>
 
       {isFocusMode && (
         <span className="text-amber-600 dark:text-amber-400 font-medium bg-amber-50 dark:bg-amber-950/30 px-1.5 rounded">Focus</span>

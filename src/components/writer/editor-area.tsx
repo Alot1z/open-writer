@@ -32,6 +32,42 @@ export function EditorArea({ className }: EditorAreaProps) {
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const lastSavedContent = useRef<string>('')
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Latest unsaved content, so flush-on-close saves the newest keystrokes
+  const pendingContent = useRef<{ sceneId: string; content: string } | null>(null)
+
+  // Stable save function (uses refs, safe to call from unmount/pagehide handlers)
+  const saveScene = useCallback(async (sceneId: string, content: string) => {
+    try {
+      setSaveStatus('saving')
+      const res = await fetch(`/api/scenes/${sceneId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      })
+      if (res.ok) {
+        lastSavedContent.current = content
+        setSaveStatus('saved')
+        return true
+      }
+    } catch (err) {
+      console.error('Failed to save scene:', err)
+    }
+    setSaveStatus('unsaved')
+    return false
+  }, [])
+
+  // Flush any pending autosave immediately (no-op when nothing is unsaved)
+  const flushSave = useCallback(() => {
+    if (autosaveTimer.current) {
+      clearTimeout(autosaveTimer.current)
+      autosaveTimer.current = null
+    }
+    const pending = pendingContent.current
+    pendingContent.current = null
+    if (!pending) return
+    if (pending.content === lastSavedContent.current) return
+    void saveScene(pending.sceneId, pending.content)
+  }, [saveScene])
 
   // Fetch scene data when scene changes
   useEffect(() => {
@@ -39,6 +75,9 @@ export function EditorArea({ className }: EditorAreaProps) {
       setSceneData(null)
       return
     }
+
+    // Flush the previous scene's unsaved content before switching
+    flushSave()
 
     const fetchScene = async () => {
       try {
@@ -59,14 +98,33 @@ export function EditorArea({ className }: EditorAreaProps) {
     }
 
     fetchScene()
-  }, [currentSceneId, setEditorStats])
+  }, [currentSceneId, setEditorStats, flushSave])
 
-  // Cleanup autosave timer
+  // Flush pending autosave on unmount and on page close / tab hide
   useEffect(() => {
-    return () => {
-      if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
+    const flushOnHidden = () => {
+      if (document.visibilityState === 'hidden') flushSave()
     }
-  }, [])
+    document.addEventListener('visibilitychange', flushOnHidden)
+    window.addEventListener('pagehide', flushSave)
+    return () => {
+      document.removeEventListener('visibilitychange', flushOnHidden)
+      window.removeEventListener('pagehide', flushSave)
+      flushSave()
+    }
+  }, [flushSave])
+
+  // Ctrl/Cmd+S: save immediately (never let the browser open its save dialog)
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        flushSave()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [flushSave])
 
   // Autosave handler
   const handleContentChange = useCallback(
@@ -77,30 +135,19 @@ export function EditorArea({ className }: EditorAreaProps) {
       setSceneData((prev) => prev ? { ...prev, content: html } : null)
       setSaveStatus('unsaved')
 
+      // Remember latest content so flush-on-close saves it
+      pendingContent.current = { sceneId: currentSceneId, content: html }
+
       // Clear previous timer
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
 
       // Debounced autosave (interval from Writing settings)
       const intervalMs = Math.max(0.5, loadWritingSettings().autosaveInterval) * 1000
-      autosaveTimer.current = setTimeout(async () => {
-        try {
-          setSaveStatus('saving')
-          const res = await fetch(`/api/scenes/${currentSceneId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: html }),
-          })
-          if (res.ok) {
-            lastSavedContent.current = html
-            setSaveStatus('saved')
-          }
-        } catch (err) {
-          console.error('Failed to autosave:', err)
-          setSaveStatus('unsaved')
-        }
+      autosaveTimer.current = setTimeout(() => {
+        flushSave()
       }, intervalMs)
     },
-    [currentSceneId]
+    [currentSceneId, flushSave]
   )
 
   // Word count change handler
