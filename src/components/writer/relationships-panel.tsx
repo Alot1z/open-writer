@@ -234,6 +234,7 @@ export function RelationshipsPanel() {
         <Button
           variant="ghost"
           size="sm"
+          aria-label="Add relationship"
           className="h-6 w-6 p-0"
           onClick={() => setShowAddDialog(true)}
         >

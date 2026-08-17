@@ -314,6 +314,7 @@ export function GoalsPanel() {
                           <Button
                             size="sm"
                             variant="ghost"
+                            aria-label={`Save ${getGoalTypeLabel(goal.type)} goal`}
                             className="h-6 w-6 p-0"
                             onClick={() => handleSaveEdit(goal)}
                           >
@@ -333,6 +334,7 @@ export function GoalsPanel() {
                           <Button
                             size="sm"
                             variant="ghost"
+                            aria-label={`Edit ${getGoalTypeLabel(goal.type)} goal`}
                             className="h-6 w-6 p-0"
                             onClick={() => handleStartEdit(goal)}
                           >
@@ -341,6 +343,7 @@ export function GoalsPanel() {
                           <Button
                             size="sm"
                             variant="ghost"
+                            aria-label={goal.active ? `Pause ${getGoalTypeLabel(goal.type)} goal` : `Resume ${getGoalTypeLabel(goal.type)} goal`}
                             className="h-6 w-6 p-0"
                             onClick={() => handleToggleActive(goal)}
                           >
@@ -349,6 +352,7 @@ export function GoalsPanel() {
                           <Button
                             size="sm"
                             variant="ghost"
+                            aria-label={`Delete ${getGoalTypeLabel(goal.type)} goal`}
                             className="h-6 w-6 p-0"
                             onClick={() => handleDeleteGoal(goal.id)}
                           >
@@ -411,6 +415,7 @@ export function GoalsPanel() {
                     <Button
                       size="sm"
                       variant="ghost"
+                      aria-label={goal.active ? `Pause ${getGoalTypeLabel(goal.type)} goal` : `Resume ${getGoalTypeLabel(goal.type)} goal`}
                       className="h-6 w-6 p-0"
                       onClick={() => handleToggleActive(goal)}
                     >
@@ -419,6 +424,7 @@ export function GoalsPanel() {
                     <Button
                       size="sm"
                       variant="ghost"
+                      aria-label={`Delete ${getGoalTypeLabel(goal.type)} goal`}
                       className="h-6 w-6 p-0"
                       onClick={() => handleDeleteGoal(goal.id)}
                     >

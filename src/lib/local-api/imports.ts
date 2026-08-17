@@ -9,6 +9,24 @@ import * as db from "./storage"
 import * as s from "./services"
 import type { Chapter, Scene } from "./types"
 
+/**
+ * Defense-in-depth sanitization for imported content. The editor renders
+ * through ProseMirror's schema (which drops unknown nodes and attributes),
+ * but imported text is stored raw and later exported/backed up — strip the
+ * obviously dangerous tokens so no stored value can carry executable HTML.
+ */
+export function sanitizeImportedContent(input: string): string {
+  return input
+    .replace(/<\/?script[^>]*>/gi, "")
+    .replace(/<\/?iframe[^>]*>/gi, "")
+    .replace(/<\/?object[^>]*>/gi, "")
+    .replace(/<\/?embed[^>]*>/gi, "")
+    .replace(/<\/?style[^>]*>/gi, "")
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/javascript:\s*/gi, "")
+    .replace(/<\s*([a-z][a-z0-9]*)\s+[^>]*?srcdoc\s*=/gi, "<$1 ")
+}
+
 export async function importMarkdown(projectId: string, content: string): Promise<{ chapters: number; scenes: number }> {
   if (!projectId || !content || typeof content !== "string") {
     throw new s.ApiError("projectId and content (string) are required", 400)
@@ -68,7 +86,7 @@ export async function importMarkdown(projectId: string, content: string): Promis
 
     for (let j = 0; j < ch.scenes.length; j++) {
       const sc = ch.scenes[j]
-      const content = sc.content.trim()
+      const content = sanitizeImportedContent(sc.content.trim())
       newScenes.push({
         id: s.newId(),
         chapterId: chapter.id,
@@ -367,7 +385,8 @@ export async function importText(projectId: string, content: string, title?: str
   if (!project) throw new s.ApiError("Project not found", 404)
 
   const existingChapters = (await db.getAll<Chapter>("chapters")).filter((c) => c.projectId === projectId)
-  const wordCount = content.split(/\s+/).filter(Boolean).length
+  const safeContent = sanitizeImportedContent(content)
+  const wordCount = safeContent.split(/\s+/).filter(Boolean).length
   const t = s.now()
 
   const chapter: Chapter = {
@@ -386,7 +405,7 @@ export async function importText(projectId: string, content: string, title?: str
     id: s.newId(),
     chapterId: chapter.id,
     title: "Content",
-    content,
+    content: safeContent,
     order: 0,
     status: "draft",
     povCharacterId: "",
@@ -481,6 +500,11 @@ export async function importDocx(
 ): Promise<{ chapters: number; scenes: number; wordCount: number }> {
   if (!projectId || !bytes || bytes.length === 0) {
     throw new s.ApiError("projectId and file content are required", 400)
+  }
+  // Archive-attack guard: reject oversized files before parsing (the zip
+  // reader decompresses a whole entry into memory).
+  if (bytes.length > 60 * 1024 * 1024) {
+    throw new s.ApiError("File is too large (max 60 MB)", 400)
   }
   const project = await db.getById("projects", projectId)
   if (!project) throw new s.ApiError("Project not found", 404)

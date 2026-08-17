@@ -129,6 +129,7 @@ export function FlowWidget() {
                 <Button
                   variant="ghost"
                   size="sm"
+                  aria-label="Collapse flow widget"
                   className="h-5 w-5 p-0"
                   onClick={() => setExpanded(false)}
                 >
@@ -210,6 +211,7 @@ export function FlowWidget() {
             /* Collapsed state - just an icon */
             <button
               onClick={() => setExpanded(true)}
+              aria-label="Expand flow widget"
               className="flex items-center justify-center w-11 h-11 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
             >
               <Flame className="h-5 w-5 text-amber-500" />

@@ -172,6 +172,7 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Typewriter mode"
             className={cn(
               'h-7 w-7',
               isTypewriterMode && 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30',
@@ -189,6 +190,7 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Focus mode"
             className={cn(
               'h-7 w-7',
               isFocusMode && 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30',
@@ -213,6 +215,7 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Search (Ctrl+K)"
             className="h-7 w-7"
             onClick={() => setSearchOpen(true)}
           >
@@ -228,6 +231,7 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Toggle theme"
             className="h-7 w-7"
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           >
@@ -244,6 +248,7 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
           <Button
             variant="ghost"
             size="icon"
+            aria-label={syncPillLabel(syncSnapshot.status)}
             className={cn('h-7 w-7', syncPillTone(syncSnapshot.status))}
             onClick={() => setSettingsOpen(true, 'storage')}
           >
@@ -258,7 +263,7 @@ export function TopBar({ totalWordCount = 0, chapterTitle, sceneTitle }: TopBarP
       {/* Settings */}
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSettingsOpen(true)}>
+          <Button variant="ghost" size="icon" aria-label="Settings" className="h-7 w-7" onClick={() => setSettingsOpen(true)}>
             <Settings className="h-3.5 w-3.5" />
           </Button>
         </TooltipTrigger>
